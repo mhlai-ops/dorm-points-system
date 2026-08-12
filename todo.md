@@ -1,3 +1,14 @@
+# 晨樂加油站 Remember Me 待辦
+
+- [ ] 登入頁加入預設勾選的「保持登入狀態」Checkbox。
+- [ ] 勾選時將登入 token/state 寫入 localStorage。
+- [ ] 未勾選時將登入 token/state 寫入 sessionStorage。
+- [ ] App 啟動時依序檢查 localStorage、sessionStorage 並恢復登入。
+- [ ] 登出時同時清除 localStorage 與 sessionStorage 的登入紀錄。
+- [ ] 加入手機版 Checkbox 樣式並完成 TypeScript、build 及 GitHub Push。
+
+---
+
 # 晨樂加油站持久化登入待辦
 
 - [ ] 檢查現有 Login、PageShell 及 Home 導航流程。

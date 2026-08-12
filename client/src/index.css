@@ -61,3 +61,9 @@ button:focus-visible,input:focus-visible { outline:3px solid rgba(213,154,57,.55
 .logout-button:hover { background: #fff7cf; }
 .logout-button:active { transform: scale(.97); }
 @media (max-width: 560px) { .topbar-actions { gap: 6px; } .secure { font-size: 0; gap: 0; } .secure svg { width: 16px; height: 16px; } .logout-button { padding: 7px 10px; font-size: 12px; } }
+
+/* 晨樂加油站｜Remember Me：清楚可觸控的登入偏好設定。 */
+.remember-row { display: grid; grid-template-columns: auto 1fr; align-items: center; column-gap: 9px; row-gap: 2px; margin: 2px 0 14px; color: var(--ink); cursor: pointer; }
+.remember-row input[type="checkbox"] { width: 20px; height: 20px; accent-color: #1769c2; grid-row: span 2; cursor: pointer; }
+.remember-row span { font-weight: 800; font-size: 14px; }
+.remember-row small { color: var(--muted); font-size: 11px; }
