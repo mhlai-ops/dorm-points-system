@@ -1,3 +1,14 @@
+# 晨樂加油站 Logo 資產修正待辦
+
+- [ ] 檢查 Logo 圖片檔案實際位置及 Git 追蹤狀態。
+- [ ] 檢查 Home.tsx、index.html 及 CSS 的 Logo 引用路徑。
+- [ ] 將 Logo 放入 client/public 可部署靜態資產路徑，或改用正確 import。
+- [ ] 修正 favicon、頁首及登入頁引用，避免使用不存在的 /manus-storage URL。
+- [ ] 執行 TypeScript、production build 及圖片檔案存在驗證。
+- [ ] 建立並 Push 新 commit，觸發 Cloudflare Pages 重新部署。
+
+---
+
 # 晨樂加油站 Cloudflare Pages 部署修正待辦
 
 - [ ] 檢查 package.json 的 scripts、build 指令及輸出目錄。
