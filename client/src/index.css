@@ -32,3 +32,9 @@ button:focus-visible,input:focus-visible { outline:3px solid rgba(213,154,57,.55
 .edit-student { background:#dff3ff; color:var(--ink); }
 .delete-student { background:#ffe6e4; color:#c44343; }
 @media (max-width:700px) { .quick-card { padding:9px; } .student-actions button { padding:8px 9px; } }
+
+/* 分數明細修正：把修改與撤銷放在同一個清晰的操作區。 */
+.log-actions { display:flex; flex-direction:column; gap:5px; flex:none; }
+.edit-log { color:var(--ink); border:1px solid #9bd4f5; background:#e5f5ff; border-radius:7px; padding:6px 8px; font-size:10px; font-weight:900; }
+.edit-log-modal .modal-sun { background:#8ed8ff; box-shadow:0 4px 0 #5ab9e8; }
+@media (max-width:700px) { .log-actions { gap:4px; } .edit-log,.log-actions .undo { padding:6px 7px; } }
