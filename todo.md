@@ -1,3 +1,14 @@
+# 晨樂加油站 Blank Page 修正待辦
+
+- [ ] 檢查 vite.config.ts 是否設定 `base: '/'`。
+- [ ] 檢查 build 後 index.html 的 JS、CSS 及圖片引用是否為正確根路徑。
+- [ ] 確認 dist/public 內存在所有必要資源。
+- [ ] 修正前端資產引用或 Vite 設定，避免 pages.dev 出現 Blank Page。
+- [ ] 執行 TypeScript、production build 及資源路徑檢查。
+- [ ] 建立並 Push 新 commit 到 GitHub。
+
+---
+
 # 晨樂加油站 Logo 資產修正待辦
 
 - [ ] 檢查 Logo 圖片檔案實際位置及 Git 追蹤狀態。
