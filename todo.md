@@ -1,3 +1,14 @@
+# 晨樂加油站 Chrome 白畫面修正待辦
+
+- [ ] 在 index.html 加入根節點錯誤與未捕捉 Promise 的全域降級畫面。
+- [ ] 檢查並確認沒有註冊 Service Worker 或 PWA 快取造成 Chrome 請求死鎖。
+- [ ] 檢查 Safari／Chrome API 使用位置，加入安全 feature detection 及 fallback。
+- [ ] 確認 Vite base 為 `/`、SPA `_redirects` 存在、Router 不依賴 User-Agent。
+- [ ] 執行 TypeScript、production build 及 Chrome／無痕模式資源驗證。
+- [ ] 建立 commit 並 Push 到 GitHub main。
+
+---
+
 # 晨樂加油站 Remember Me 待辦
 
 - [ ] 登入頁加入預設勾選的「保持登入狀態」Checkbox。
