@@ -1,3 +1,15 @@
+# 晨樂加油站跨平台 QR 掃描待辦
+
+- [ ] 移除原生 BarcodeDetector 相依。
+- [ ] 導入 html5-qrcode 或同等跨平台 QR Code 掃描套件。
+- [ ] 確保 iPhone Safari 與 Android 可透過 HTTPS 相機讀取 QR Code。
+- [ ] 保留相機權限拒絕、無法開啟鏡頭及掃描失敗提示。
+- [ ] 掃描成功後維持現有宿生對應及自動跳轉積分頁。
+- [ ] 保留 Web NFC、文字搜尋及相容性降級流程。
+- [ ] 完成 TypeScript、production build、手機版驗證與 checkpoint。
+
+---
+
 # 晨樂加油站 Web NFC 待辦
 
 - [ ] 在搜尋頁加入 Web NFC 讀取入口。
