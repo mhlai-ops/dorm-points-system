@@ -1,3 +1,15 @@
+# 晨樂加油站持久化登入待辦
+
+- [ ] 檢查現有 Login、PageShell 及 Home 導航流程。
+- [ ] 成功登入後將 authentication token/state 安全寫入 localStorage。
+- [ ] 啟動時讀取並驗證登入紀錄，自動恢復 search 頁。
+- [ ] 在搜尋、積分及明細頁提供登出按鈕。
+- [ ] 登出時清除 localStorage 登入紀錄並返回登入頁。
+- [ ] 執行 TypeScript、production build 及登入流程驗證。
+- [ ] 建立 commit 並 Push 到 GitHub main。
+
+---
+
 # 晨樂加油站白畫面穩定性優化待辦
 
 - [ ] 檢查並完善 React Error Boundary，捕捉初始化及渲染錯誤。

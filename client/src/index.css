@@ -54,3 +54,10 @@ button:focus-visible,input:focus-visible { outline:3px solid rgba(213,154,57,.55
 .qr-reader img { display:none !important; }
 .qr-reader__scan_region { min-height:260px; }
 .qr-reader__dashboard { display:none !important; }
+
+/* 晨樂加油站｜持久化登入：頁首登出控制保持清晰、輕量及手機可觸控。 */
+.topbar-actions { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.logout-button { border: 2px solid rgba(23, 105, 194, .2); border-radius: 999px; background: #fff; color: #1769c2; padding: 8px 13px; font: 800 13px Nunito, sans-serif; transition: transform .16s ease, background .16s ease; }
+.logout-button:hover { background: #fff7cf; }
+.logout-button:active { transform: scale(.97); }
+@media (max-width: 560px) { .topbar-actions { gap: 6px; } .secure { font-size: 0; gap: 0; } .secure svg { width: 16px; height: 16px; } .logout-button { padding: 7px 10px; font-size: 12px; } }
