@@ -1,3 +1,13 @@
+# 晨樂加油站 Cloudflare Pages 部署修正待辦
+
+- [ ] 檢查 package.json 的 scripts、build 指令及輸出目錄。
+- [ ] 確認 Cloudflare Pages 應使用 Vite 靜態輸出 dist/public 或正確輸出目錄。
+- [ ] 修正 build 指令，避免把 Express server bundle 當成 Pages 靜態部署必要步驟。
+- [ ] 執行 TypeScript check 及 production build。
+- [ ] 建立並 Push 新 commit，觸發 Cloudflare Pages 重新部署。
+
+---
+
 # 晨樂加油站登入帳號更新待辦
 
 - [ ] 將登入帳戶設定為 1234。
