@@ -1,3 +1,12 @@
+# 晨樂加油站 Cloudflare SPA fallback 待辦
+
+- [ ] 在 client/public/ 新增 `_redirects`。
+- [ ] 寫入 `/*    /index.html   200`，讓非首頁刷新回到 SPA 入口。
+- [ ] 確認 build 後檔案存在於 dist/public/_redirects。
+- [ ] 建立 commit 並 Push 到 GitHub main，觸發 Cloudflare Pages 重新部署。
+
+---
+
 # 晨樂加油站 Blank Page 修正待辦
 
 - [ ] 檢查 vite.config.ts 是否設定 `base: '/'`。
