@@ -1,3 +1,15 @@
+# 晨樂加油站 Web NFC 待辦
+
+- [ ] 在搜尋頁加入 Web NFC 讀取入口。
+- [ ] 使用 NDEFReader 讀取 NFC 卡片內的文字或 URI ID。
+- [ ] 支援解析 20418、20409 等宿生 ID，成功後自動選取並跳轉積分頁。
+- [ ] 不支援 Web NFC 的瀏覽器自動隱藏 NFC 入口，保留 QR Code 及文字搜尋。
+- [ ] 加入 HTTPS、權限拒絕、讀取失敗及找不到宿生的友善提示。
+- [ ] 停止讀取時清理 NFC scan session，避免重複監聽。
+- [ ] 完成 TypeScript、production build、手機版驗證與 NFC 版本 checkpoint。
+
+---
+
 # 晨樂加油站分數修正待辦
 
 - [ ] 在每筆分數明細加入「修改分數」入口。

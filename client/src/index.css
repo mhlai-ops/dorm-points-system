@@ -38,3 +38,12 @@ button:focus-visible,input:focus-visible { outline:3px solid rgba(213,154,57,.55
 .edit-log { color:var(--ink); border:1px solid #9bd4f5; background:#e5f5ff; border-radius:7px; padding:6px 8px; font-size:10px; font-weight:900; }
 .edit-log-modal .modal-sun { background:#8ed8ff; box-shadow:0 4px 0 #5ab9e8; }
 @media (max-width:700px) { .log-actions { gap:4px; } .edit-log,.log-actions .undo { padding:6px 7px; } }
+
+/* Web NFC：只在瀏覽器支援 NDEFReader 時由 React 顯示，並維持 QR Code 作為降級方案。 */
+.nfc-trigger { width:100%; margin-top:12px; border:2px solid #1769c2; background:#fff6b8; color:var(--ink-dark); min-height:58px; display:flex; align-items:center; justify-content:center; gap:10px; font-size:14px; font-weight:900; border-radius:16px; box-shadow:0 4px 0 #e4c433; }
+.nfc-trigger.active { background:#1769c2; color:white; box-shadow:0 4px 0 #0e4b96; }
+.nfc-trigger small { font-size:10px; font-weight:700; color:var(--muted); margin-left:2px; }
+.nfc-trigger.active small { color:#dff3ff; }
+.nfc-symbol { border:2px solid currentColor; border-radius:7px; padding:4px 5px; font:900 10px "IBM Plex Mono",monospace; letter-spacing:-.08em; }
+.nfc-error { margin-top:10px; }
+@media (max-width:700px) { .nfc-trigger { min-height:62px; flex-wrap:wrap; gap:7px; } .nfc-trigger small { flex-basis:100%; margin-left:0; text-align:center; } }
