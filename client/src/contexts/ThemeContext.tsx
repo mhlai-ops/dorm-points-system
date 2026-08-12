@@ -22,11 +22,13 @@ export function ThemeProvider({
   switchable = false,
 }: ThemeProviderProps) {
   const [theme, setTheme] = useState<Theme>(() => {
-    if (switchable) {
-      const stored = localStorage.getItem("theme");
-      return (stored as Theme) || defaultTheme;
+    if (!switchable) return defaultTheme;
+    try {
+      const stored = window.localStorage.getItem("theme");
+      return stored === "light" || stored === "dark" ? stored : defaultTheme;
+    } catch {
+      return defaultTheme;
     }
-    return defaultTheme;
   });
 
   useEffect(() => {
@@ -38,7 +40,11 @@ export function ThemeProvider({
     }
 
     if (switchable) {
-      localStorage.setItem("theme", theme);
+      try {
+        window.localStorage.setItem("theme", theme);
+      } catch {
+        // 儲存空間被封鎖或已滿時，主題仍可在本次工作階段正常使用。
+      }
     }
   }, [theme, switchable]);
 

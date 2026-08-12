@@ -1,3 +1,13 @@
+# 晨樂加油站白畫面穩定性優化待辦
+
+- [ ] 檢查並完善 React Error Boundary，捕捉初始化及渲染錯誤。
+- [ ] 封裝所有 LocalStorage 讀取，加入 try/catch、資料驗證及預設 fallback。
+- [ ] 確認 Vite production JS/CSS 輸出使用完整 hash 檔名及正確 index 引用。
+- [ ] 執行 TypeScript、production build 及輸出資源驗證。
+- [ ] 建立 commit 並 Push 到 GitHub main。
+
+---
+
 # 晨樂加油站 Cloudflare SPA fallback 待辦
 
 - [ ] 在 client/public/ 新增 `_redirects`。
