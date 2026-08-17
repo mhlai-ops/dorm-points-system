@@ -1,1 +1,2 @@
+/api/*    https://dormpoints-uicn9trd.manus.space/api/:splat    200
 /*    /index.html   200
