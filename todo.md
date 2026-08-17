@@ -251,3 +251,13 @@
 - [x] 新增或更新 Vitest 覆蓋 invalid token 與 token expiry handling。
 - [x] 完成 TypeScript、Vitest、build、瀏覽器重新登入及 snapshot 驗證。
 - [ ] 保存新的修正版 checkpoint 並確認部署狀態。
+
+---
+
+# Cloudflare Pages 最新部署驗證待辦
+
+- [ ] 檢查 GitHub main 最新 commit 是否包含 JWS 修正版。
+- [ ] 確認 Cloudflare Pages 專案是否連接正確 GitHub repository 與 main 分支。
+- [ ] 如未自動觸發，推送最新 commit 觸發 Cloudflare Pages 部署。
+- [ ] 檢查最新 Cloudflare deployment status 及 production URL。
+- [ ] 驗證 production 版本不再出現 Invalid Compact JWS。
