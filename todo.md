@@ -229,3 +229,14 @@
 - [x] 重新驗證「修改分數」操作會成功寫入 Supabase，且重新整理後快照一致。
 - [x] 重新驗證「撤銷」操作會成功寫入 Supabase，且重新整理後快照一致。
 - [x] 以第二個瀏覽器工作階段／裝置模擬跨裝置測試，確認一端更新後另一端可透過 polling 或手動刷新看到最新資料。
+
+---
+
+# 晨樂加油站初始化與同步錯誤修復待辦
+
+- [x] 修正 index.html inline fallback script 的 Invalid regular expression flags。
+- [x] 確保未取得有效登入 token 前不建立或執行 sync.snapshot 查詢。
+- [x] 修正同步查詢錯誤處理，避免空 token 觸發 API Query Error。
+- [x] 修正 production start 對 dist/index.js 缺失的部署啟動問題。
+- [x] 通過 TypeScript、Vitest、production build、瀏覽器初始化及登入同步驗證。
+- [ ] 保存新的修正版 checkpoint 並確認部署啟動。

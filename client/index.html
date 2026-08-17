@@ -42,7 +42,7 @@
         if (endpoint && websiteId && endpoint.indexOf("%VITE_") !== 0) {
           var script = document.createElement("script");
           script.defer = true;
-          script.src = endpoint.replace(/\\/$/, "") + "/umami";
+          script.src = endpoint.replace(/\/$/, "") + "/umami";
           script.dataset.websiteId = websiteId;
           document.body.appendChild(script);
         }
