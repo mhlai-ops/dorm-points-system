@@ -239,4 +239,15 @@
 - [x] 修正同步查詢錯誤處理，避免空 token 觸發 API Query Error。
 - [x] 修正 production start 對 dist/index.js 缺失的部署啟動問題。
 - [x] 通過 TypeScript、Vitest、production build、瀏覽器初始化及登入同步驗證。
-- [ ] 保存新的修正版 checkpoint 並確認部署啟動。
+- [x] 保存新的修正版 checkpoint 並確認部署啟動。
+
+---
+
+# 晨樂加油站 Invalid Compact JWS 修復待辦
+
+- [x] 檢查 sync token 的 localStorage/sessionStorage 讀取、保存與 JWT 驗證流程。
+- [x] 讓格式錯誤或已失效 token 自動清除並回到登入頁，不再持續觸發 snapshot API Query Error。
+- [x] 修正 snapshot query 的 JWT 錯誤降級與重新登入流程。
+- [x] 新增或更新 Vitest 覆蓋 invalid token 與 token expiry handling。
+- [x] 完成 TypeScript、Vitest、build、瀏覽器重新登入及 snapshot 驗證。
+- [ ] 保存新的修正版 checkpoint 並確認部署狀態。

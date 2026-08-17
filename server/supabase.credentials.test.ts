@@ -27,6 +27,12 @@ describe("Supabase server credentials", () => {
     expect(saved.logs.length).toBe(snapshot.logs.length);
   }, 20_000);
 
+  it("rejects malformed compact JWS tokens", async () => {
+    await expect(verifySyncToken("not-a-jwt")).rejects.toThrow();
+    await expect(verifySyncToken("header.payload")).rejects.toThrow();
+    await expect(verifySyncToken("eyJhbGciOiJIUzI1NiJ9.eyJleHAiOjF9.invalid-signature")).rejects.toThrow();
+  });
+
   it("exposes the same snapshot to two independent sync sessions", async () => {
     const firstToken = await createSyncToken("1234");
     const secondToken = await createSyncToken("1234");

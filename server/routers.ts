@@ -2,8 +2,17 @@ import { COOKIE_NAME } from "@shared/const";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { publicProcedure, router } from "./_core/trpc";
+import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { createSyncToken, readSnapshot, replaceSnapshot, verifySyncToken, type SyncLog, type SyncStudent } from "./supabase";
+
+const verifyRouterSyncToken = async (token: string) => {
+  try {
+    return await verifySyncToken(token);
+  } catch {
+    throw new TRPCError({ code: "UNAUTHORIZED", message: "Sync session expired" });
+  }
+};
 
 export const appRouter = router({
     // if you need to use socket.io, read and register route in server/_core/index.ts, all api should start with '/api/' so that the gateway can route correctly
@@ -30,7 +39,7 @@ export const appRouter = router({
     snapshot: publicProcedure
       .input(z.object({ token: z.string().min(1) }))
       .query(async ({ input }) => {
-        await verifySyncToken(input.token);
+        await verifyRouterSyncToken(input.token);
         return readSnapshot();
       }),
     save: publicProcedure
@@ -40,7 +49,7 @@ export const appRouter = router({
         logs: z.array(z.object({ id: z.string().min(1), studentId: z.string().min(1), at: z.string(), item: z.string().min(1), delta: z.number().int().refine(value => value !== 0), balance: z.number().int().min(0) })),
       }))
       .mutation(async ({ input }) => {
-        await verifySyncToken(input.token);
+        await verifyRouterSyncToken(input.token);
         return replaceSnapshot({ students: input.students as SyncStudent[], logs: input.logs as SyncLog[] });
       }),
   }),
