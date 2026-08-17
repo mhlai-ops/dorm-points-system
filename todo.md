@@ -256,8 +256,17 @@
 
 # Cloudflare Pages 最新部署驗證待辦
 
-- [ ] 檢查 GitHub main 最新 commit 是否包含 JWS 修正版。
-- [ ] 確認 Cloudflare Pages 專案是否連接正確 GitHub repository 與 main 分支。
-- [ ] 如未自動觸發，推送最新 commit 觸發 Cloudflare Pages 部署。
-- [ ] 檢查最新 Cloudflare deployment status 及 production URL。
-- [ ] 驗證 production 版本不再出現 Invalid Compact JWS。
+- [x] 檢查 GitHub main 最新 commit 是否包含 JWS 修正版。
+- [x] 確認 Cloudflare Pages 專案是否連接正確 GitHub repository 與 main 分支。
+- [x] 如未自動觸發，推送最新 commit 觸發 Cloudflare Pages 部署。
+- [x] 檢查最新 Cloudflare deployment status 及 production URL。
+- [x] 驗證 production 版本不再出現 Invalid Compact JWS。
+
+---
+
+# 晨樂加油站手機版刷新按鈕修復待辦
+
+- [x] 檢查 PageShell 頁首刷新按鈕的 JSX 與 mobile CSS。
+- [x] 確保搜尋、積分及歷史頁手機版都顯示可操作的刷新按鈕。
+- [x] 以手機 viewport 驗證按鈕可見、可點擊並觸發資料刷新。
+- [x] 完成測試、保存 checkpoint 及回報修正版本。

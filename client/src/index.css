@@ -76,3 +76,20 @@ button:focus-visible,input:focus-visible { outline:3px solid rgba(213,154,57,.55
 @keyframes sync-spin { to { transform:rotate(360deg); } }
 @media (prefers-reduced-motion: reduce) { .refresh-button .spin { animation:none; } }
 @media (max-width:640px) { .topbar-actions { gap:6px; } .secure { font-size:0; gap:0; } .secure svg { width:16px; height:16px; } .refresh-button { width:34px; height:34px; } }
+
+/* 手機版刷新入口：保留清楚文字與足夠觸控面積，避免只剩不可見圖示。 */
+.topbar-actions { display:flex; align-items:center; gap:8px; flex:none; }
+.refresh-button { min-width:44px; min-height:40px; padding:8px 10px; border:1px solid var(--line); border-radius:10px; background:var(--white); color:var(--ink); display:inline-flex; align-items:center; justify-content:center; gap:5px; font-size:12px; font-weight:900; white-space:nowrap; }
+.refresh-button:disabled { opacity:.58; cursor:wait; }
+.refresh-label { display:inline; }
+.logout-button { flex:none; white-space:nowrap; }
+@media (max-width:700px) {
+  .topbar { gap:8px; }
+  .brand { min-width:0; font-size:15px; gap:6px; }
+  .brand span { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .chapter { min-width:0; max-width:74px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .topbar-actions { gap:5px; }
+  .refresh-button { min-width:44px; min-height:40px; padding:8px 7px; }
+  .refresh-label { display:inline; }
+  .logout-button { padding:8px 7px; font-size:11px; }
+}
