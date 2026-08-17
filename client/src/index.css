@@ -67,3 +67,12 @@ button:focus-visible,input:focus-visible { outline:3px solid rgba(213,154,57,.55
 .remember-row input[type="checkbox"] { width: 20px; height: 20px; accent-color: #1769c2; grid-row: span 2; cursor: pointer; }
 .remember-row span { font-weight: 800; font-size: 14px; }
 .remember-row small { color: var(--muted); font-size: 11px; }
+
+/* Cloud sync controls */
+.refresh-button { display:inline-flex; align-items:center; justify-content:center; width:36px; height:36px; border:1px solid rgba(30,74,58,.18); border-radius:999px; background:#fffdf4; color:#1e4a3a; cursor:pointer; transition:transform .16s ease, background .16s ease; }
+.refresh-button:active { transform:scale(.94); }
+.refresh-button:disabled { opacity:.6; cursor:wait; }
+.refresh-button .spin { animation:sync-spin .8s linear infinite; }
+@keyframes sync-spin { to { transform:rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .refresh-button .spin { animation:none; } }
+@media (max-width:640px) { .topbar-actions { gap:6px; } .secure { font-size:0; gap:0; } .secure svg { width:16px; height:16px; } .refresh-button { width:34px; height:34px; } }

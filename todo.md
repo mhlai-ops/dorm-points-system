@@ -1,3 +1,38 @@
+# 晨樂加油站方案 B 後端同步待辦
+
+- [ ] 將專案升級為具備後端 API、資料庫及 secrets 管理的全端架構。
+- [ ] 設定 Supabase URL 與 server-side service key，絕不暴露到前端或 GitHub。
+- [ ] 保留前端 1234／1234 登入，建立後端代理認證與 API 保護。
+- [ ] 建立宿生、積分異動、修改及撤銷的共享 API。
+- [ ] 加入 5–10 秒輪詢、手動刷新、下拉刷新及返回前景自動更新。
+- [ ] 保留 LocalStorage 作為本機快取／離線 fallback。
+- [ ] 完成跨裝置測試、build、部署與 checkpoint。
+
+---
+
+# 晨樂加油站 Supabase 跨裝置同步待辦
+
+- [ ] 準備 Supabase Project URL、Anon Key 及資料庫權限設定。
+- [ ] 將宿生與積分異動建立為共享資料表／API 資料層。
+- [ ] 保留 LocalStorage 作為本機快取及離線 fallback。
+- [ ] 加入 Supabase Realtime 訂閱，並以 5–10 秒輪詢作備援。
+- [ ] 加入手動更新按鈕、手機下拉刷新及返回前景自動更新。
+- [ ] 測試不同裝置的新增宿生、加減分、修改、撤銷同步。
+- [ ] 完成 build、部署及 checkpoint。
+
+---
+
+# 晨樂加油站跨裝置資料同步待辦
+
+- [ ] 確認跨裝置共享資料來源方案。
+- [ ] 將宿生及積分異動從純 LocalStorage 擴展到共享後端資料來源。
+- [ ] 加入 5–10 秒背景輪詢或即時訂閱。
+- [ ] 加入手動更新按鈕、手機下拉刷新及返回前景自動更新。
+- [ ] 保留 LocalStorage 作為本機快取／離線 fallback，避免資料層切換時白畫面。
+- [ ] 完成跨裝置測試、build、checkpoint 及部署驗證。
+
+---
+
 # 晨樂加油站 Chrome 白畫面修正待辦
 
 - [ ] 在 index.html 加入根節點錯誤與未捕捉 Promise 的全域降級畫面。
@@ -180,3 +215,17 @@
 - [ ] 為積分不足加入錯誤提示音效與較短警示震動。
 - [ ] 在不支援 AudioContext 或 navigator.vibrate 的裝置上優雅降級。
 - [ ] 完成手機版視覺與 production build 驗證，保存新 checkpoint。
+
+---
+
+# 晨樂加油站安全 Secrets 重設待辦
+
+- [x] 重新發出 `SUPABASE_SERVICE_ROLE_KEY` 安全 Secrets 設定請求。
+- [x] 只接受管理介面 Secrets 卡片輸入，拒絕聊天中公開的 key。
+- [x] 驗證 server-side Supabase credentials 可讀寫共享資料。
+- [x] 完成加分、修改、撤銷及跨裝置 snapshot 測試。
+- [ ] 完成 build、checkpoint 及部署驗證。
+
+- [x] 重新驗證「修改分數」操作會成功寫入 Supabase，且重新整理後快照一致。
+- [x] 重新驗證「撤銷」操作會成功寫入 Supabase，且重新整理後快照一致。
+- [x] 以第二個瀏覽器工作階段／裝置模擬跨裝置測試，確認一端更新後另一端可透過 polling 或手動刷新看到最新資料。
