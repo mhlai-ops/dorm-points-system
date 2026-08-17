@@ -37,10 +37,12 @@ queryClient.getMutationCache().subscribe(event => {
   }
 });
 
+const apiOrigin = typeof window !== "undefined" && window.location.hostname.endsWith("pages.dev") ? "https://dormpoints-uicn9trd.manus.space" : "";
+
 const trpcClient = trpc.createClient({
   links: [
     httpBatchLink({
-      url: "/api/trpc",
+      url: `${apiOrigin}/api/trpc`,
       transformer: superjson,
       headers() {
         // Preview auto-login fallback: when the browser blocks iframe cookies

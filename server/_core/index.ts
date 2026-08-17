@@ -34,6 +34,22 @@ async function startServer() {
   // Configure body parser with larger size limit for file uploads
   app.use(express.json({ limit: "50mb" }));
   app.use(express.urlencoded({ limit: "50mb", extended: true }));
+  app.use((req, res, next) => {
+    const origin = req.headers.origin;
+    const allowed = origin === "https://dormpoints-uicn9trd.manus.space" || origin === "https://dorm-points-system.pages.dev" || Boolean(origin?.endsWith(".manus.computer"));
+    if (allowed && origin) {
+      res.setHeader("Access-Control-Allow-Origin", origin);
+      res.setHeader("Access-Control-Allow-Credentials", "true");
+      res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization, X-TRPC-Source");
+      res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+      res.setHeader("Vary", "Origin");
+    }
+    if (req.method === "OPTIONS") {
+      res.status(204).end();
+      return;
+    }
+    next();
+  });
   registerStorageProxy(app);
   registerOAuthRoutes(app);
   // tRPC API

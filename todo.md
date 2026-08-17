@@ -275,7 +275,25 @@
 
 # 手機版刷新修正版 Cloudflare 推送待辦
 
-- [ ] 確認手機刷新按鈕變更已存在工作樹且 GitHub main 未包含。
-- [ ] 將手機刷新修正版提交並推送至 GitHub main。
-- [ ] 確認 Cloudflare Pages 自動部署已被觸發。
-- [ ] 核對 production URL 可載入及刷新功能版本狀態。
+- [x] 確認手機刷新按鈕變更已存在工作樹且 GitHub main 未包含。
+- [x] 將手機刷新修正版提交並推送至 GitHub main。
+- [x] 確認 Cloudflare Pages 自動部署已被觸發。
+- [x] 核對 production URL 可載入及刷新功能版本狀態。
+
+---
+
+# 登入同步服務錯誤調查待辦
+
+- [x] 檢查登入 mutation、前端錯誤處理及重複提交行為。
+- [x] 驗證多裝置是否可各自取得獨立同步 token。
+- [x] 檢查 Cloudflare production 的 tRPC API 路由及 server bundle 可用性。
+- [x] 修正登入失敗提示、重複提交保護或部署路由問題。
+- [ ] 完成本機及 production 登入同步測試並保存版本。
+
+- [x] 修正 Cloudflare Pages 靜態站點呼叫 `/api/trpc` 回傳 405 的 production API 路徑。
+- [x] 為可用的全端 server 加入 Cloudflare Pages origin 的 CORS 支援。
+- [ ] 驗證 Cloudflare production 登入可取得 sync token，且多裝置各自登入不互相登出。
+
+- [ ] 完成本次登入同步修正後的 GitHub main push。
+- [ ] 觸發並核對 Cloudflare Pages deployment。
+- [ ] 在 production 驗證登入 API、重複點擊防護及多裝置 token。
