@@ -297,3 +297,13 @@
 - [ ] 完成本次登入同步修正後的 GitHub main push。
 - [ ] 觸發並核對 Cloudflare Pages deployment。
 - [ ] 在 production 驗證登入 API、重複點擊防護及多裝置 token。
+
+---
+
+# Cloudflare production 登入及加分實測待辦
+
+- [ ] 將登入同步修正版推送到 GitHub main。
+- [ ] 確認 Cloudflare Pages 已部署最新 frontend endpoint 修正。
+- [ ] 在 production 使用 1234/1234 登入並選取思𤦭。
+- [ ] 在 production 加分一次，確認沒有同步錯誤且顯示成功提示。
+- [ ] 重新刷新或重新登入，確認加分已保存到共享 Supabase snapshot。
