@@ -329,7 +329,7 @@
 - [x] 為每位宿生資料模型新增獨立的 `qrCode` 與 `nfcCode` 欄位，並設計現有資料升級策略。
 - [x] 更新新增／編輯宿生表單，讓 QR Code 與 NFC Code 可分開輸入並分別驗證重複值。
 - [x] 更新文字搜尋、QR 掃描及 NFC 讀取，分別以對應 Code 尋找同一位宿生。
-- [ ] 驗證 LocalStorage 與 Supabase snapshot 的向後相容、跨裝置同步、build 及部署。
+- [x] 驗證 LocalStorage 與 Supabase snapshot 的向後相容、跨裝置同步、build 及部署。
 - [x] 在截圖所示的「編輯宿生資料」視窗，於 QR Code ID 下方新增「NFC Code／UID（選填）」輸入欄位。
 - [x] 儲存後以 NFC Code／UID 作為 NFC 嗶卡的優先辨識值，並在手機版確認欄位清晰可填寫。
 - [x] 將 `Student`／`SyncStudent` 改為包含內部 `id`、`qrCode` 及 `nfcCode`，並將舊 LocalStorage 資料安全升級。
@@ -339,3 +339,4 @@
 - [x] 補上首次空遠端 seed、舊資料升級、QR／NFC 重複值與 snapshot round-trip 的 UUID 安全回歸測試。
 - [x] 明確驗證 `qrCode` 與 `nfcCode` 經 Supabase `replaceSnapshot()`／`readSnapshot()` 後的值完全一致。
 - [x] 以 UUID 升級後的舊 LocalStorage 資料驗證 seed／save 不會向 Supabase `students.id` 寫入非 UUID 值。
+- [x] 修正未設定 NFC Code 在 Supabase snapshot 的序列化型別，使另一端以缺省欄位而非 `null` 安全讀取。

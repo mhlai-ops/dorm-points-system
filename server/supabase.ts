@@ -8,13 +8,11 @@ const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3
 
 export const isSyncStudentId = (value: string): boolean => UUID_PATTERN.test(value);
 
-export const fromSupabaseStudentRow = (student: SupabaseStudentRow): SyncStudent => ({
-  id: student.id || student.qr_id,
-  qrCode: student.qr_id,
-  name: student.name,
-  points: student.points,
-  nfcCode: student.nfc_id?.trim() || undefined,
-});
+export const fromSupabaseStudentRow = (student: SupabaseStudentRow): SyncStudent => {
+  const nfcCode = student.nfc_id?.trim();
+  const base = { id: student.id || student.qr_id, qrCode: student.qr_id, name: student.name, points: student.points };
+  return nfcCode ? { ...base, nfcCode } : base;
+};
 
 export const toSupabaseStudentRow = (student: SyncStudent) => ({
   id: student.id,

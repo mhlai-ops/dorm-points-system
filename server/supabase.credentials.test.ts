@@ -35,6 +35,10 @@ describe("Supabase server credentials", () => {
     expect(toSupabaseStudentRow(student)).toEqual({ id: "b8c7a232-5dcf-4c4c-b81a-0a2c9d6f7e0a", qr_id: "20418", nfc_id: "04A1B2C3D4", name: "思𤦭", points: 7 });
   });
 
+  it("omits an unset NFC Code instead of serializing it as a null client value", () => {
+    expect(fromSupabaseStudentRow({ id: "b8c7a232-5dcf-4c4c-b81a-0a2c9d6f7e0a", qr_id: "20418", nfc_id: null, name: "思𤦭", points: 7 })).toEqual({ id: "b8c7a232-5dcf-4c4c-b81a-0a2c9d6f7e0a", qrCode: "20418", name: "思𤦭", points: 7 });
+  });
+
   it("rejects a non-UUID internal ID before it can be written to Supabase", async () => {
     await expect(replaceSnapshot({ students: [{ id: "20418", qrCode: "20418", nfcCode: "04A1", name: "思𤦭", points: 0 }], logs: [] })).rejects.toThrow("UUID");
   });
