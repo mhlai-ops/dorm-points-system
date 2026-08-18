@@ -339,4 +339,4 @@
 - [x] 補上首次空遠端 seed、舊資料升級、QR／NFC 重複值與 snapshot round-trip 的 UUID 安全回歸測試。
 - [x] 明確驗證 `qrCode` 與 `nfcCode` 經 Supabase `replaceSnapshot()`／`readSnapshot()` 後的值完全一致。
 - [x] 以 UUID 升級後的舊 LocalStorage 資料驗證 seed／save 不會向 Supabase `students.id` 寫入非 UUID 值。
-- [x] 修正未設定 NFC Code 在 Supabase snapshot 的序列化型別，使另一端以缺省欄位而非 `null` 安全讀取。
+- [x] 在 tRPC snapshot 讀取邊界正規化空白 NFC Code，避免跨裝置快照的 `null` 值被後續儲存操作送回 API。

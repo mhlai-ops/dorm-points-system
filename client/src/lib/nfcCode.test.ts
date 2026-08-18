@@ -10,6 +10,7 @@ describe("NFC Code helpers", () => {
   it("normalizes optional NFC Code values", () => {
     expect(normalizeNfcCode("  04A1B2C3D4  ")).toBe("04A1B2C3D4");
     expect(normalizeNfcCode("   ")).toBeUndefined();
+    expect(normalizeNfcCode(null)).toBeUndefined();
   });
 
   it("prioritizes a dedicated NFC Code and falls back to a legacy QR Code", () => {

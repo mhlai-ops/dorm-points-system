@@ -194,7 +194,7 @@ export default function Home() {
       saveRemote(students, logs);
       return;
     }
-    setStudents(remote.students);
+    setStudents(remote.students.map(nextStudent => ({ ...nextStudent, nfcCode: normalizeNfcCode(nextStudent.nfcCode) })));
     setLogs(remote.logs);
   }, [snapshotQuery.data]);
 
