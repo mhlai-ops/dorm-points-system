@@ -7,8 +7,13 @@ import superjson from "superjson";
 import App from "./App";
 import { startLogin } from "./const";
 import "./index.css";
+import { isRecoverableSyncAuthError } from "./lib/syncAuth";
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: { retry: false },
+  },
+});
 
 const redirectToLoginIfUnauthorized = (error: unknown) => {
   if (!(error instanceof TRPCClientError)) return;
@@ -25,6 +30,10 @@ queryClient.getQueryCache().subscribe(event => {
   if (event.type === "updated" && event.action.type === "error") {
     const error = event.query.state.error;
     redirectToLoginIfUnauthorized(error);
+    // The points app owns expiry recovery: it clears its local sync session and
+    // returns to the login page. Do not turn that expected state transition
+    // into a noisy global API Query Error in the browser console.
+    if (isRecoverableSyncAuthError(error)) return;
     console.error("[API Query Error]", error);
   }
 });
@@ -33,6 +42,7 @@ queryClient.getMutationCache().subscribe(event => {
   if (event.type === "updated" && event.action.type === "error") {
     const error = event.mutation.state.error;
     redirectToLoginIfUnauthorized(error);
+    if (isRecoverableSyncAuthError(error)) return;
     console.error("[API Mutation Error]", error);
   }
 });

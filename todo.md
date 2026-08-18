@@ -288,22 +288,45 @@
 - [x] 驗證多裝置是否可各自取得獨立同步 token。
 - [x] 檢查 Cloudflare production 的 tRPC API 路由及 server bundle 可用性。
 - [x] 修正登入失敗提示、重複提交保護或部署路由問題。
-- [ ] 完成本機及 production 登入同步測試並保存版本。
+- [x] 完成本機及 production 登入同步測試並保存版本。
 
 - [x] 修正 Cloudflare Pages 靜態站點呼叫 `/api/trpc` 回傳 405 的 production API 路徑。
 - [x] 為可用的全端 server 加入 Cloudflare Pages origin 的 CORS 支援。
-- [ ] 驗證 Cloudflare production 登入可取得 sync token，且多裝置各自登入不互相登出。
+- [x] 驗證 Cloudflare production 登入可取得 sync token，且多裝置各自登入不互相登出。
 
-- [ ] 完成本次登入同步修正後的 GitHub main push。
-- [ ] 觸發並核對 Cloudflare Pages deployment。
-- [ ] 在 production 驗證登入 API、重複點擊防護及多裝置 token。
+- [x] 完成本次登入同步修正後的 GitHub main push。
+- [x] 觸發並核對 Cloudflare Pages deployment。
+- [x] 在 production 驗證登入 API、重複點擊防護及多裝置 token。
 
 ---
 
 # Cloudflare production 登入及加分實測待辦
 
-- [ ] 將登入同步修正版推送到 GitHub main。
-- [ ] 確認 Cloudflare Pages 已部署最新 frontend endpoint 修正。
-- [ ] 在 production 使用 1234/1234 登入並選取思𤦭。
-- [ ] 在 production 加分一次，確認沒有同步錯誤且顯示成功提示。
-- [ ] 重新刷新或重新登入，確認加分已保存到共享 Supabase snapshot。
+- [x] 將登入同步修正版推送到 GitHub main。
+- [x] 確認 Cloudflare Pages 已部署最新 frontend endpoint 修正。
+- [x] 在 production 使用 1234/1234 登入並選取思𤦭。
+- [x] 在 production 加分一次，確認沒有同步錯誤且顯示成功提示。
+- [x] 重新刷新或重新登入，確認加分已保存到共享 Supabase snapshot。
+
+---
+
+# Sync session expired 錯誤修復待辦
+
+- [x] 定位過期 sync token 在背景輪詢、焦點恢復與手動刷新時仍觸發 API Query Error 的路徑。
+- [x] 將可預期的 `Sync session expired` 處理為 session 清理與登入頁降級，不再輸出全域 API Query Error。
+- [x] 驗證過期 token、重新登入及 snapshot polling 流程。
+- [x] 完成 TypeScript、Vitest 及 production build 驗證。
+- [x] 重新登入後等待或觸發 snapshot polling，確認查詢恢復且 console 無 API Query Error。
+- [x] 確認 snapshot query 已停用過期 token 的自動 retry，並完成回歸驗證。
+- [ ] 保存本次 Sync session expired 修正版 checkpoint。
+- [ ] 推送修正版至 GitHub main 並觸發 Cloudflare Pages 部署。
+- [ ] 在 production 驗證過期 session 降級後不再出現全域 API Query Error。
+
+---
+
+# 宿生 QR Code 與 NFC Code 分離待辦
+
+- [ ] 為每位宿生資料模型新增獨立的 `qrCode` 與 `nfcCode` 欄位，並設計現有資料升級策略。
+- [ ] 更新新增／編輯宿生表單，讓 QR Code 與 NFC Code 可分開輸入並分別驗證重複值。
+- [ ] 更新文字搜尋、QR 掃描及 NFC 讀取，分別以對應 Code 尋找同一位宿生。
+- [ ] 驗證 LocalStorage 與 Supabase snapshot 的向後相容、跨裝置同步、build 及部署。

@@ -6,6 +6,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Html5Qrcode } from "html5-qrcode";
 import { trpc } from "@/lib/trpc";
+import { isRecoverableSyncAuthError } from "@/lib/syncAuth";
 import { ArrowLeft, ArrowRight, Camera, Check, ChevronDown, ClipboardList, Gift, History, LogIn, QrCode, RefreshCw, ScanLine, ShieldCheck, Sparkles, UserRound, X } from "lucide-react";
 
 type Student = { id: string; name: string; points: number };
@@ -19,7 +20,7 @@ const createAuthToken = () => {
   try { return window.crypto.randomUUID(); } catch { return `${Date.now()}-${Math.random().toString(36).slice(2)}`; }
 };
 const isCompactJws = (token: string) => token.split(".").length === 3 && token.split(".").every(part => /^[A-Za-z0-9_-]+$/.test(part));
-const isSyncAuthError = (error: unknown) => { const message = error instanceof Error ? error.message : String(error); return message.includes("Invalid Compact JWS") || message.includes("JWTExpired") || message.includes("JWTClaimValidationFailed") || message.includes("JWSInvalid") || message.includes("Invalid sync scope") || message.includes("Sync session expired") || message.includes("UNAUTHORIZED"); };
+const isSyncAuthError = isRecoverableSyncAuthError;
 const parseAuth = (raw: string | null): AuthState | null => {
   try {
     if (!raw) return null;
