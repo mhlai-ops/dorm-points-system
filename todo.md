@@ -318,7 +318,7 @@
 - [x] 完成 TypeScript、Vitest 及 production build 驗證。
 - [x] 重新登入後等待或觸發 snapshot polling，確認查詢恢復且 console 無 API Query Error。
 - [x] 確認 snapshot query 已停用過期 token 的自動 retry，並完成回歸驗證。
-- [ ] 保存本次 Sync session expired 修正版 checkpoint。
+- [x] 保存本次 Sync session expired 修正版 checkpoint。
 - [ ] 推送修正版至 GitHub main 並觸發 Cloudflare Pages 部署。
 - [ ] 在 production 驗證過期 session 降級後不再出現全域 API Query Error。
 
