@@ -1,7 +1,28 @@
 import { jwtVerify, SignJWT } from "jose";
 
-export type SyncStudent = { id: string; name: string; points: number };
+export type SyncStudent = { id: string; qrCode: string; name: string; points: number; nfcCode?: string };
 export type SyncLog = { id: string; studentId: string; at: string; item: string; delta: number; balance: number };
+export type SupabaseStudentRow = { id?: string; qr_id: string; nfc_id?: string | null; name: string; points: number };
+
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+export const isSyncStudentId = (value: string): boolean => UUID_PATTERN.test(value);
+
+export const fromSupabaseStudentRow = (student: SupabaseStudentRow): SyncStudent => ({
+  id: student.id || student.qr_id,
+  qrCode: student.qr_id,
+  name: student.name,
+  points: student.points,
+  nfcCode: student.nfc_id?.trim() || undefined,
+});
+
+export const toSupabaseStudentRow = (student: SyncStudent) => ({
+  id: student.id,
+  qr_id: student.qrCode,
+  nfc_id: student.nfcCode?.trim() || null,
+  name: student.name,
+  points: student.points,
+});
 
 const supabaseUrl = () => process.env.SUPABASE_URL?.replace(/\/$/, "");
 const serviceKey = () => process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -35,17 +56,17 @@ async function request(path: string, init?: RequestInit) {
 
 export async function readSnapshot(): Promise<{ students: SyncStudent[]; logs: SyncLog[] }> {
   const [students, rawLogs] = await Promise.all([
-    request("students?select=id,qr_id,name,points&order=created_at.asc"),
+    request("students?select=id,qr_id,nfc_id,name,points&order=created_at.asc"),
     request("point_logs?select=id,student_id,item,delta,balance,created_at&order=created_at.asc"),
   ]);
-  const uuidByQr = new Map<string, string>();
-  const rawStudents = students as Array<{ id?: string; qr_id: string; name: string; points: number }>;
-  rawStudents.forEach(student => uuidByQr.set(student.qr_id, student.id || student.qr_id));
+  const uuidByStudentId = new Map<string, string>();
+  const rawStudents = students as SupabaseStudentRow[];
+  rawStudents.forEach(student => uuidByStudentId.set(student.id || student.qr_id, student.id || student.qr_id));
   return {
-    students: rawStudents.map(student => ({ id: student.qr_id, name: student.name, points: student.points })),
+    students: rawStudents.map(fromSupabaseStudentRow),
     logs: (rawLogs as Array<{ id: string; student_id: string; item: string; delta: number; balance: number; created_at: string }>).map(log => ({
       id: log.id,
-      studentId: uuidByQr.get(log.student_id) || log.student_id,
+      studentId: uuidByStudentId.get(log.student_id) || log.student_id,
       at: log.created_at,
       item: log.item,
       delta: log.delta,
@@ -55,26 +76,29 @@ export async function readSnapshot(): Promise<{ students: SyncStudent[]; logs: S
 }
 
 export async function replaceSnapshot(snapshot: { students: SyncStudent[]; logs: SyncLog[] }) {
+  if (!snapshot.students.every(student => isSyncStudentId(student.id))) {
+    throw new Error("Sync student IDs must be UUIDs");
+  }
   const current = await readSnapshot();
   const currentIds = new Set(current.students.map(student => student.id));
   const nextIds = new Set(snapshot.students.map(student => student.id));
   const removedStudents = Array.from(currentIds).filter(id => !nextIds.has(id));
   if (removedStudents.length) {
     const encoded = removedStudents.map(id => `\"${id.replace(/\"/g, "") }\"`).join(",");
-    await request(`students?qr_id=in.(${encoded})`, { method: "DELETE" });
+    await request(`students?id=in.(${encoded})`, { method: "DELETE" });
   }
 
-  const rows = snapshot.students.map(student => ({ qr_id: student.id, name: student.name, points: student.points }));
+  const rows = snapshot.students.map(toSupabaseStudentRow);
   if (rows.length) {
-    await request("students?on_conflict=qr_id", {
+    await request("students?on_conflict=id", {
       method: "POST",
       headers: { Prefer: "resolution=merge-duplicates" },
       body: JSON.stringify(rows),
     });
   }
 
-  const studentRows = await request("students?select=id,qr_id") as Array<{ id: string; qr_id: string }>;
-  const uuidByQr = new Map(studentRows.map(row => [row.qr_id, row.id]));
+  const studentRows = await request("students?select=id") as Array<{ id: string }>;
+  const uuidByStudentId = new Map(studentRows.map(row => [row.id, row.id]));
   const currentLogIds = new Set(current.logs.map(log => log.id));
   const nextLogIds = new Set(snapshot.logs.map(log => log.id));
   const removedLogs = Array.from(currentLogIds).filter(id => !nextLogIds.has(id));
@@ -84,7 +108,7 @@ export async function replaceSnapshot(snapshot: { students: SyncStudent[]; logs:
   }
   const logs = snapshot.logs.map(log => ({
     id: /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(log.id) ? log.id : crypto.randomUUID(),
-    student_id: uuidByQr.get(log.studentId),
+    student_id: uuidByStudentId.get(log.studentId),
     item: log.item,
     delta: log.delta,
     balance: log.balance,

@@ -7,18 +7,21 @@ import { toast } from "sonner";
 import { Html5Qrcode } from "html5-qrcode";
 import { trpc } from "@/lib/trpc";
 import { isRecoverableSyncAuthError } from "@/lib/syncAuth";
+import { findStudentByNfcCode, findStudentByQrCode, isNfcCodeInUse, isQrCodeInUse, matchesStudentQuery, normalizeNfcCode } from "@/lib/nfcCode";
+import { migrateStudentStorage, shouldSeedRemoteSnapshot } from "@/lib/studentMigration";
 import { ArrowLeft, ArrowRight, Camera, Check, ChevronDown, ClipboardList, Gift, History, LogIn, QrCode, RefreshCw, ScanLine, ShieldCheck, Sparkles, UserRound, X } from "lucide-react";
 
-type Student = { id: string; name: string; points: number };
+type Student = { id: string; qrCode: string; name: string; points: number; nfcCode?: string };
 type Log = { id: string; studentId: string; at: string; item: string; delta: number; balance: number };
-const PRESET: Student[] = [{ id: "20418", name: "思𤦭", points: 0 }, { id: "20409", name: "楚榆", points: 0 }];
+const PRESET: Student[] = [{ id: "preset-20418", qrCode: "20418", name: "思𤦭", points: 0 }, { id: "preset-20409", qrCode: "20409", name: "楚榆", points: 0 }];
 const STUDENTS_KEY = "dorm-points-students-v1";
 const LOGS_KEY = "dorm-points-logs-v1";
 const AUTH_KEY = "morning-joy-auth-v1";
 type AuthState = { token: string; signedInAt: string; version: 1 };
-const createAuthToken = () => {
+const createClientId = () => {
   try { return window.crypto.randomUUID(); } catch { return `${Date.now()}-${Math.random().toString(36).slice(2)}`; }
 };
+const createAuthToken = () => createClientId();
 const isCompactJws = (token: string) => token.split(".").length === 3 && token.split(".").every(part => /^[A-Za-z0-9_-]+$/.test(part));
 const isSyncAuthError = isRecoverableSyncAuthError;
 const parseAuth = (raw: string | null): AuthState | null => {
@@ -50,10 +53,10 @@ const clearAuth = () => {
   try { window.localStorage.removeItem(AUTH_KEY); } catch { /* 儲存空間不可用時繼續清理 sessionStorage。 */ }
   try { window.sessionStorage.removeItem(AUTH_KEY); } catch { /* 儲存空間不可用時仍由記憶體狀態登出。 */ }
 };
-const isStudent = (value: unknown): value is Student => {
+const isStoredStudent = (value: unknown): value is Student => {
   if (!value || typeof value !== "object") return false;
   const item = value as Partial<Student>;
-  return typeof item.id === "string" && typeof item.name === "string" && typeof item.points === "number" && Number.isFinite(item.points) && item.points >= 0;
+  return typeof item.id === "string" && typeof item.name === "string" && typeof item.points === "number" && Number.isFinite(item.points) && item.points >= 0 && (item.qrCode === undefined || typeof item.qrCode === "string") && (item.nfcCode === undefined || typeof item.nfcCode === "string");
 };
 const isLog = (value: unknown): value is Log => {
   if (!value || typeof value !== "object") return false;
@@ -70,13 +73,20 @@ const load = <T,>(key: string, fallback: T, validate?: (value: unknown) => value
     return fallback;
   }
 };
+let migratedStorage: { students: Student[]; logs: Log[] } | null = null;
 const loadStudents = (): Student[] => {
-  const saved = load<unknown>(STUDENTS_KEY, PRESET, value => Array.isArray(value));
-  return Array.isArray(saved) ? saved.filter(isStudent) : PRESET;
+  if (migratedStorage) return migratedStorage.students;
+  const savedStudents = load<unknown>(STUDENTS_KEY, PRESET, value => Array.isArray(value));
+  const savedLogs = load<unknown>(LOGS_KEY, [], value => Array.isArray(value));
+  const students = Array.isArray(savedStudents) ? savedStudents.filter(isStoredStudent) : [];
+  const logs = Array.isArray(savedLogs) ? savedLogs.filter(isLog) : [];
+  const migrated = migrateStudentStorage(students.length ? students : PRESET, logs, createClientId);
+  migratedStorage = { students: migrated.students.map(student => ({ ...student, nfcCode: normalizeNfcCode(student.nfcCode) })), logs: migrated.logs };
+  return migratedStorage.students;
 };
 const loadLogs = (): Log[] => {
-  const saved = load<unknown>(LOGS_KEY, [], value => Array.isArray(value));
-  return Array.isArray(saved) ? saved.filter(isLog) : [];
+  if (!migratedStorage) loadStudents();
+  return migratedStorage?.logs ?? [];
 };
 const persist = (students: Student[], logs: Log[]) => {
   try {
@@ -116,14 +126,203 @@ const SUN_ICON = "/morning-joy-sun.jpeg";
 function Mark({ small = false }: { small?: boolean }) { return <img className={`sun-icon ${small ? "sun-icon-small" : ""}`} src={SUN_ICON} alt="晨樂加油站陽光公仔"/>; }
 function PageShell({ children, eyebrow, onHome, onLogout, onRefresh, refreshing }: { children: React.ReactNode; eyebrow: string; onHome?: () => void; onLogout: () => void; onRefresh?: () => void; refreshing?: boolean }) { return <main className="app-shell"><header className="topbar"><button className="brand" onClick={onHome}><Mark small/><span>晨樂加油站</span></button><span className="chapter">{eyebrow}</span><div className="topbar-actions"><span className="secure"><ShieldCheck size={14}/> 雲端同步</span>{onRefresh && <button className="refresh-button" type="button" onClick={onRefresh} disabled={refreshing} aria-label="重新整理"><RefreshCw size={16} className={refreshing ? "spin" : ""}/><span className="refresh-label">刷新</span></button>}<button className="logout-button" type="button" onClick={onLogout}>登出</button></div></header>{children}</main>; }
 function Login({ onLogin, busy }: { onLogin: (account: string, password: string, remember: boolean) => void; busy: boolean }) { const [account, setAccount] = useState(""); const [password, setPassword] = useState(""); const [remember, setRemember] = useState(true); return <div className="login-page"><div className="login-aside"><div className="entry-brand"><Mark/><div><strong>晨樂加油站</strong><small>晨樂 · 積分加油站</small></div></div><div className="chapter-label">01 / ACCESS</div><p className="kicker">MORNING JOY / 2026</p><h1>把每天的好表現，<em>記下來。</em></h1><p className="lede">為老師、家長和小朋友設計的積分加油站。記下每天的好表現，讓每一次努力都看得見。</p><div className="aside-note"><Sparkles size={17}/><span>今天，也一起讓宿舍變得更好。</span></div><div className="workflow-strip"><div><QrCode size={16}/><strong>掃描</strong><small>找宿生</small></div><div><span className="workflow-number">+5</span><strong>記分</strong><small>即時更新</small></div><div><History size={16}/><strong>追蹤</strong><small>可撤銷</small></div></div></div><div className="login-card"><div className="paper-holes"><i/><i/><i/></div><div className="card-kicker">管理者登入 / DUTY LOG</div><h2>進入你的<br/><span>值日工作台</span></h2><p className="muted">任意帳號與密碼皆可登入示範環境。</p><form onSubmit={(e) => { e.preventDefault(); if (busy) return; if (account.trim() === "1234" && password === "1234") { toast.success("登入成功，歡迎回到晨樂加油站！"); onLogin(account, password, remember); } else { toast.error("帳戶號碼或帳戶密碼不正確，請再試一次。"); } }}><label>帳號<input value={account} onChange={e => setAccount(e.target.value)} placeholder="輸入帳戶號碼" autoComplete="username" inputMode="numeric"/></label><label>密碼<input value={password} onChange={e => setPassword(e.target.value)} type="password" placeholder="輸入帳戶密碼" autoComplete="current-password"/></label><label className="remember-row"><input type="checkbox" checked={remember} onChange={e => setRemember(e.target.checked)}/><span>保持登入狀態</span><small>{remember ? "下次開啟可直接登入" : "關閉瀏覽器後需要重新登入"}</small></label><button className="primary wide" type="submit" disabled={busy}><LogIn size={18}/> {busy ? "連線中…" : "登入工作台"} {!busy && <ArrowRight size={17}/>}</button></form><div className="login-footer"><span>資料僅保存在此裝置</span><span className="dot"/> <span>HTTPS 可安全使用相機</span></div></div></div>; }
-function NewStudent({ onClose, onSave, students, initial }: { onClose: () => void; onSave: (student: Student) => void; students: Student[]; initial?: Student }) { const [name, setName] = useState(initial?.name || ""); const [id, setId] = useState(initial?.id || ""); const submit = (e: React.FormEvent) => { e.preventDefault(); const cleanName = name.trim(); const cleanId = id.trim(); if (!cleanName || !cleanId) { toast.error("請填寫姓名和 QR Code ID"); return; } if (students.some(s => s.id === cleanId)) { toast.error("這個 QR Code ID 已經使用了"); return; } onSave({ id: cleanId, name: cleanName, points: initial?.points || 0 }); }; return <div className="modal-backdrop" onClick={onClose}><div className="student-modal" onClick={e => e.stopPropagation()}><button className="modal-close" onClick={onClose}><X size={19}/></button><div className="modal-sun">☀</div><p className="kicker">{initial ? "EDIT RESIDENT" : "NEW RESIDENT"}</p><h2>{initial ? "編輯宿生資料" : "加入新宿生"}</h2><p className="muted">{initial ? "可以修改姓名或 QR Code ID，積分及歷史紀錄會保留。" : "新增後會立即出現在快捷清單，初始積分為 0。"}</p><form onSubmit={submit}><label>宿生姓名<input value={name} onChange={e => setName(e.target.value)} placeholder="例如：小明" autoFocus/></label><label>QR Code ID<input value={id} onChange={e => setId(e.target.value)} placeholder="例如：20420" inputMode="numeric"/></label><button className="primary wide" type="submit"><Sparkles size={18}/> {initial ? "儲存修改" : "加入晨樂加油站"}</button></form></div></div>; }
+function NewStudent({ onClose, onSave, students, initial }: { onClose: () => void; onSave: (student: Student) => void; students: Student[]; initial?: Student }) { const [name, setName] = useState(initial?.name || ""); const [qrCode, setQrCode] = useState(initial?.qrCode || ""); const [nfcCode, setNfcCode] = useState(initial?.nfcCode || ""); const submit = (e: React.FormEvent) => { e.preventDefault(); const cleanName = name.trim(); const cleanQrCode = qrCode.trim(); const cleanNfcCode = normalizeNfcCode(nfcCode); if (!cleanName || !cleanQrCode) { toast.error("請填寫姓名和 QR Code ID"); return; } if (isQrCodeInUse(students, cleanQrCode)) { toast.error("這個 QR Code ID 已經使用了"); return; } if (cleanNfcCode && isNfcCodeInUse(students, cleanNfcCode)) { toast.error("這個 NFC Code／UID 已經使用了"); return; } onSave({ id: initial?.id || createClientId(), qrCode: cleanQrCode, name: cleanName, points: initial?.points || 0, nfcCode: cleanNfcCode }); }; return <div className="modal-backdrop" onClick={onClose}><div className="student-modal" onClick={e => e.stopPropagation()}><button className="modal-close" onClick={onClose}><X size={19}/></button><div className="modal-sun">☀</div><p className="kicker">{initial ? "EDIT RESIDENT" : "NEW RESIDENT"}</p><h2>{initial ? "編輯宿生資料" : "加入新宿生"}</h2><p className="muted">{initial ? "可以修改姓名、QR Code ID 或 NFC Code；積分及歷史紀錄會保留。" : "新增後會立即出現在快捷清單，初始積分為 0。"}</p><form onSubmit={submit}><label>宿生姓名<input value={name} onChange={e => setName(e.target.value)} placeholder="例如：小明" autoFocus/></label><label>QR Code ID<input value={qrCode} onChange={e => setQrCode(e.target.value)} placeholder="例如：20420" inputMode="numeric"/></label><label>NFC Code／UID（選填）<input value={nfcCode} onChange={e => setNfcCode(e.target.value)} placeholder="例如：04A1B2C3D4" autoCapitalize="characters"/></label><button className="primary wide" type="submit"><Sparkles size={18}/> {initial ? "儲存修改" : "加入晨樂加油站"}</button></form></div></div>; }
 function decodeNfcRecord(record: any): string { try { if (typeof record?.data === "string") return record.data; if (record?.data instanceof DataView) return new TextDecoder().decode(record.data); if (record?.data) return new TextDecoder().decode(new Uint8Array(record.data)); } catch {} return ""; }
-function Search({ students, select, onAdd, onEdit, onDelete, onLogout, onRefresh, refreshing }: { students: Student[]; select: (s: Student) => void; onAdd: () => void; onEdit: (student: Student) => void; onDelete: (student: Student) => void; onLogout: () => void; onRefresh: () => void; refreshing: boolean }) { const [query, setQuery] = useState(""); const [camera, setCamera] = useState(false); const [cameraError, setCameraError] = useState(""); const [nfcActive, setNfcActive] = useState(false); const [nfcError, setNfcError] = useState(""); const nfcReaderRef = useRef<any>(null); const nfcSupported = typeof window !== "undefined" && "NDEFReader" in window; const qrScannerRef = useRef<Html5Qrcode | null>(null); const videoRef = useRef<HTMLVideoElement>(null); const streamRef = useRef<MediaStream | null>(null); const touchStartY = useRef<number | null>(null); const filtered = useMemo(() => query ? students.filter(s => s.name.includes(query) || s.id.includes(query)) : [], [query, students]);
- useEffect(() => { if (!nfcActive) return; let active = true; const startNfc = async () => { try { if (!window.isSecureContext) throw new Error("NFC 需要 HTTPS 安全連線，請使用部署後的安全網址。"); const Reader = (window as any).NDEFReader; if (!Reader) return; const reader = new Reader(); nfcReaderRef.current = reader; reader.onreadingerror = () => active && setNfcError("讀不到這張 NFC 卡，請確認卡片已寫入宿生 ID。"); reader.onreading = (event: any) => { if (!active) return; const recordValues = (event?.message?.records || []).map(decodeNfcRecord); const recordId = recordValues.join(" ").match(/\d{4,}/)?.[0]; const serialId = String(event?.serialNumber || "").replace(/[^0-9]/g, "").match(/\d{4,}/)?.[0]; const id = recordId || serialId; const match = id ? students.find(s => s.id === id) : undefined; if (match) { toast.success(`已讀取 NFC：${match.name}`); setNfcActive(false); setNfcError(""); select(match); } else { setNfcError(id ? `讀到 ID ${id}，但找不到對應宿生。` : "這張 NFC 卡沒有可辨識的宿生 ID。"); } }; await reader.scan(); if (active) { setNfcError(""); toast.success("NFC 已準備，請將卡片靠近手機背面。"); } } catch (error: any) { if (active) { setNfcActive(false); setNfcError(error?.name === "NotAllowedError" ? "你已拒絕 NFC 權限，仍可使用 QR Code 或文字搜尋。" : error?.message || "無法啟動 NFC，請確認 Android NFC 已開啟。"); } } }; startNfc(); return () => { active = false; nfcReaderRef.current = null; }; }, [nfcActive, select, students]);
- useEffect(() => { if (!camera) { const scanner = qrScannerRef.current; if (scanner) { scanner.stop().catch(() => {}).finally(() => { try { scanner.clear(); } catch {} }); qrScannerRef.current = null; } streamRef.current?.getTracks().forEach(t => t.stop()); streamRef.current = null; return; } let active = true; const startScanner = async () => { try { if (!window.isSecureContext) throw new Error("相機需要 HTTPS 安全連線，請使用部署後的安全網址開啟。"); const scanner = new Html5Qrcode("qr-reader"); qrScannerRef.current = scanner; await scanner.start({ facingMode: "environment" }, { fps: 10, qrbox: { width: 230, height: 230 }, aspectRatio: 1 }, (decodedText) => { if (!active) return; const id = decodedText.trim(); const match = students.find(s => s.id === id); if (match) { toast.success(`已掃描：${match.name}`); setCamera(false); select(match); } else { setCameraError(`讀到 ${id}，但找不到對應宿生。`); } }, () => {}); } catch (e: any) { if (active) setCameraError(e?.name === "NotAllowedError" ? "你已拒絕相機權限，請在瀏覽器設定中允許相機。" : e?.message || "無法開啟鏡頭，請檢查 HTTPS 與相機權限。"); } }; startScanner(); return () => { active = false; const scanner = qrScannerRef.current; if (scanner) { scanner.stop().catch(() => {}).finally(() => { try { scanner.clear(); } catch {} }); qrScannerRef.current = null; } }; }, [camera, select, students]);
- return <PageShell eyebrow="02 / SEARCH" onLogout={onLogout} onRefresh={onRefresh} refreshing={refreshing}><section className="content search-content" onTouchStart={e => { touchStartY.current = e.touches[0]?.clientY ?? null; }} onTouchEnd={e => { const start = touchStartY.current; const end = e.changedTouches[0]?.clientY; touchStartY.current = null; if (start !== null && end !== undefined && end - start > 90 && window.scrollY <= 2) onRefresh(); }}><div className="section-intro"><div><p className="kicker">FIND A RESIDENT</p><h1>今天要記錄誰？</h1><p className="muted">輸入姓名或 QR Code 編號，或直接用鏡頭掃描。</p></div><div className="search-heading-actions"><div className="page-stamp">02<span>SEARCH</span></div><button className="add-student-button" onClick={onAdd}><span>＋</span> 增加宿生</button></div></div><div className="search-panel"><div className="search-input-wrap"><UserRound size={19}/><input value={query} onChange={e => setQuery(e.target.value)} placeholder="搜尋姓名或 QR Code ID" autoFocus/><kbd>⌘ K</kbd></div>{filtered.length > 0 && <div className="autocomplete">{filtered.map(s => <button key={s.id} className="result-row" onClick={() => select(s)}><span className="avatar">{s.name[0]}</span><span><strong>{s.name}</strong><small>QR / {s.id}</small></span><ArrowRight size={17}/></button>)}</div>}{nfcSupported && <button className={`nfc-trigger ${nfcActive ? "active" : ""}`} onClick={() => { setNfcError(""); setNfcActive(v => !v); }}><span className="nfc-symbol">NFC</span><span>{nfcActive ? "停止 NFC 讀取" : "啟動 NFC 嗶卡"}</span><small>{nfcActive ? "請靠近 NFC 卡片" : "Android Chrome"}</small></button>}{nfcError && <div className="camera-error nfc-error"><X size={17}/><span>{nfcError}</span></div>}<button className={`scan-trigger ${camera ? "active" : ""}`} onClick={() => { setCameraError(""); setCamera(v => !v); }}><ScanLine size={21}/><span>{camera ? "關閉掃描器" : "開啟 QR Code 掃描器"}</span><ChevronDown size={16}/></button>{camera && <div className="scanner"><div id="qr-reader" className="qr-reader"/><div className="scan-frame"><span/><span/><span/><span/></div><div className="scan-caption"><Camera size={16}/> 將 QR Code 放進框內</div></div>}{cameraError && <div className="camera-error"><X size={17}/><span>{cameraError}</span></div>}</div><div className="quick-section"><div className="section-heading"><span>快捷清單</span><span className="line"/><small>{students.length} 位宿生</small></div><div className="quick-grid">{students.map(s => <div key={s.id} className="quick-card"><button className="quick-main" onClick={() => select(s)}><span className="avatar large">{s.name[0]}</span><span><strong>{s.name}</strong><small>QR / {s.id}</small></span></button><div className="student-actions"><button className="edit-student" onClick={() => onEdit(s)}>編輯</button><button className="delete-student" onClick={() => onDelete(s)}>刪除</button></div></div>)}</div></div><div className="hint"><QrCode size={18}/><span>相機權限只會在你點擊掃描時請求，資料不會上傳。</span></div></section></PageShell>; }
-function Points({ student, update, goSearch, goHistory, onLogout, onRefresh, refreshing }: { student: Student; update: (delta: number, item: string) => void; goSearch: () => void; goHistory: () => void; onLogout: () => void; onRefresh: () => void; refreshing: boolean }) { const [menu, setMenu] = useState<"house" | "coop" | null>(null); const add = (delta: number, item: string) => { update(delta, item); setMenu(null); }; return <PageShell eyebrow="03 / POINTS" onHome={goSearch} onLogout={onLogout} onRefresh={onRefresh} refreshing={refreshing}><section className="content points-content"><button className="back-link" onClick={goSearch}><ArrowLeft size={16}/> 返回搜尋</button><div className="resident-header"><div><p className="kicker">CURRENT RESIDENT / QR {student.id}</p><h1>{student.name}</h1></div><div className="points-total"><span>目前總積分</span><strong>{student.points}</strong><small>POINTS</small></div></div><div className="history-link-row"><span>用一個小動作，留下今天的記錄。</span><button className="text-button" onClick={goHistory}><History size={16}/> 查看分數明細 <ArrowRight size={15}/></button></div><div className="action-grid"><div className="action-wrap"><button className="action-card positive" onClick={() => setMenu(menu === "house" ? null : "house")}><span className="action-icon">✦</span><span><strong>舍務</strong><small>日常整理與責任</small></span><ChevronDown size={17}/></button>{menu === "house" && <div className="choice-menu">{[1,5,10].map(v => <button key={v} onClick={() => add(v, "舍務")}>+{v} 分 <ArrowRight size={15}/></button>)}</div>}</div><div className="action-wrap"><button className="action-card positive" onClick={() => setMenu(menu === "coop" ? null : "coop")}><span className="action-icon">↗</span><span><strong>合作</strong><small>互助與團隊精神</small></span><ChevronDown size={17}/></button>{menu === "coop" && <div className="choice-menu">{[1,5,10].map(v => <button key={v} onClick={() => add(v, "合作")}>+{v} 分 <ArrowRight size={15}/></button>)}</div>}</div><button className="action-card reward" onClick={() => add(-10, "細獎換領")}><span className="action-icon"><Gift size={22}/></span><span><strong>細獎</strong><small>兌換獎勵 · 10 分</small></span><span className="minus">−10</span></button><button className="action-card reward" onClick={() => add(-30, "大獎換領")}><span className="action-icon"><Gift size={22}/></span><span><strong>大獎</strong><small>兌換獎勵 · 30 分</small></span><span className="minus">−30</span></button></div><div className="rules-note"><ClipboardList size={18}/><div><strong>小提醒</strong><span>兌換獎勵前會先檢查積分，系統不會讓總分變成負數。</span></div></div></section></PageShell>; }
+function Search({ students, select, onAdd, onEdit, onDelete, onLogout, onRefresh, refreshing }: { students: Student[]; select: (s: Student) => void; onAdd: () => void; onEdit: (student: Student) => void; onDelete: (student: Student) => void; onLogout: () => void; onRefresh: () => void; refreshing: boolean }) { const [query, setQuery] = useState(""); const [camera, setCamera] = useState(false); const [cameraError, setCameraError] = useState(""); const [nfcActive, setNfcActive] = useState(false); const [nfcError, setNfcError] = useState(""); const nfcReaderRef = useRef<any>(null); const nfcSupported = typeof window !== "undefined" && "NDEFReader" in window; const qrScannerRef = useRef<Html5Qrcode | null>(null); const videoRef = useRef<HTMLVideoElement>(null); const streamRef = useRef<MediaStream | null>(null); const touchStartY = useRef<number | null>(null); const filtered = useMemo(() => query ? students.filter(s => matchesStudentQuery(s, query)) : [], [query, students]);
+ useEffect(() => { if (!nfcActive) return; let active = true; const startNfc = async () => { try { if (!window.isSecureContext) throw new Error("NFC 需要 HTTPS 安全連線，請使用部署後的安全網址。"); const Reader = (window as any).NDEFReader; if (!Reader) return; const reader = new Reader(); nfcReaderRef.current = reader; reader.onreadingerror = () => active && setNfcError("讀不到這張 NFC 卡，請確認卡片已寫入宿生 NFC Code／UID。"); reader.onreading = (event: any) => { if (!active) return; const recordValues = (event?.message?.records || []).map(decodeNfcRecord); const recordValue = recordValues.join(" ").trim(); const serialValue = String(event?.serialNumber || "").trim(); const code = recordValue || serialValue; const match = code ? findStudentByNfcCode(students, code) : undefined; if (match) { toast.success(`已讀取 NFC：${match.name}`); setNfcActive(false); setNfcError(""); select(match); } else { setNfcError(code ? `讀到 NFC Code／UID ${code}，但找不到對應宿生。` : "這張 NFC 卡沒有可辨識的 Code／UID。"); } }; await reader.scan(); if (active) { setNfcError(""); toast.success("NFC 已準備，請將卡片靠近手機背面。\n會優先以獨立 NFC Code／UID 辨識。"); } } catch (error: any) { if (active) { setNfcActive(false); setNfcError(error?.name === "NotAllowedError" ? "你已拒絕 NFC 權限，仍可使用 QR Code 或文字搜尋。" : error?.message || "無法啟動 NFC，請確認 Android NFC 已開啟。"); } } }; startNfc(); return () => { active = false; nfcReaderRef.current = null; }; }, [nfcActive, select, students]);
+ useEffect(() => { if (!camera) { const scanner = qrScannerRef.current; if (scanner) { scanner.stop().catch(() => {}).finally(() => { try { scanner.clear(); } catch {} }); qrScannerRef.current = null; } streamRef.current?.getTracks().forEach(t => t.stop()); streamRef.current = null; return; } let active = true; const startScanner = async () => { try { if (!window.isSecureContext) throw new Error("相機需要 HTTPS 安全連線，請使用部署後的安全網址開啟。"); const scanner = new Html5Qrcode("qr-reader"); qrScannerRef.current = scanner; await scanner.start({ facingMode: "environment" }, { fps: 10, qrbox: { width: 230, height: 230 }, aspectRatio: 1 }, (decodedText) => { if (!active) return; const qrCode = decodedText.trim(); const match = findStudentByQrCode(students, qrCode); if (match) { toast.success(`已掃描：${match.name}`); setCamera(false); select(match); } else { setCameraError(`讀到 ${qrCode}，但找不到對應宿生。`); } }, () => {}); } catch (e: any) { if (active) setCameraError(e?.name === "NotAllowedError" ? "你已拒絕相機權限，請在瀏覽器設定中允許相機。" : e?.message || "無法開啟鏡頭，請檢查 HTTPS 與相機權限。"); } }; startScanner(); return () => { active = false; const scanner = qrScannerRef.current; if (scanner) { scanner.stop().catch(() => {}).finally(() => { try { scanner.clear(); } catch {} }); qrScannerRef.current = null; } }; }, [camera, select, students]);
+ return <PageShell eyebrow="02 / SEARCH" onLogout={onLogout} onRefresh={onRefresh} refreshing={refreshing}><section className="content search-content" onTouchStart={e => { touchStartY.current = e.touches[0]?.clientY ?? null; }} onTouchEnd={e => { const start = touchStartY.current; const end = e.changedTouches[0]?.clientY; touchStartY.current = null; if (start !== null && end !== undefined && end - start > 90 && window.scrollY <= 2) onRefresh(); }}><div className="section-intro"><div><p className="kicker">FIND A RESIDENT</p><h1>今天要記錄誰？</h1><p className="muted">輸入姓名、QR Code 或 NFC Code，或直接掃描。</p></div><div className="search-heading-actions"><div className="page-stamp">02<span>SEARCH</span></div><button className="add-student-button" onClick={onAdd}><span>＋</span> 增加宿生</button></div></div><div className="search-panel"><div className="search-input-wrap"><UserRound size={19}/><input value={query} onChange={e => setQuery(e.target.value)} placeholder="搜尋姓名、QR 或 NFC Code" autoFocus/><kbd>⌘ K</kbd></div>{filtered.length > 0 && <div className="autocomplete">{filtered.map(s => <button key={s.id} className="result-row" onClick={() => select(s)}><span className="avatar">{s.name[0]}</span><span><strong>{s.name}</strong><small>QR / {s.qrCode}{s.nfcCode ? ` · NFC / ${s.nfcCode}` : ""}</small></span><ArrowRight size={17}/></button>)}</div>}{nfcSupported && <button className={`nfc-trigger ${nfcActive ? "active" : ""}`} onClick={() => { setNfcError(""); setNfcActive(v => !v); }}><span className="nfc-symbol">NFC</span><span>{nfcActive ? "停止 NFC 讀取" : "啟動 NFC 嗶卡"}</span><small>{nfcActive ? "請靠近 NFC 卡片" : "Android Chrome"}</small></button>}{nfcError && <div className="camera-error nfc-error"><X size={17}/><span>{nfcError}</span></div>}<button className={`scan-trigger ${camera ? "active" : ""}`} onClick={() => { setCameraError(""); setCamera(v => !v); }}><ScanLine size={21}/><span>{camera ? "關閉掃描器" : "開啟 QR Code 掃描器"}</span><ChevronDown size={16}/></button>{camera && <div className="scanner"><div id="qr-reader" className="qr-reader"/><div className="scan-frame"><span/><span/><span/><span/></div><div className="scan-caption"><Camera size={16}/> 將 QR Code 放進框內</div></div>}{cameraError && <div className="camera-error"><X size={17}/><span>{cameraError}</span></div>}</div><div className="quick-section"><div className="section-heading"><span>快捷清單</span><span className="line"/><small>{students.length} 位宿生</small></div><div className="quick-grid">{students.map(s => <div key={s.id} className="quick-card"><button className="quick-main" onClick={() => select(s)}><span className="avatar large">{s.name[0]}</span><span><strong>{s.name}</strong><small>QR / {s.qrCode}{s.nfcCode ? ` · NFC / ${s.nfcCode}` : ""}</small></span></button><div className="student-actions"><button className="edit-student" onClick={() => onEdit(s)}>編輯</button><button className="delete-student" onClick={() => onDelete(s)}>刪除</button></div></div>)}</div></div><div className="hint"><QrCode size={18}/><span>相機權限只會在你點擊掃描時請求，資料不會上傳。</span></div></section></PageShell>; }
+function Points({ student, update, goSearch, goHistory, onLogout, onRefresh, refreshing }: { student: Student; update: (delta: number, item: string) => void; goSearch: () => void; goHistory: () => void; onLogout: () => void; onRefresh: () => void; refreshing: boolean }) { const [menu, setMenu] = useState<"house" | "coop" | null>(null); const add = (delta: number, item: string) => { update(delta, item); setMenu(null); }; return <PageShell eyebrow="03 / POINTS" onHome={goSearch} onLogout={onLogout} onRefresh={onRefresh} refreshing={refreshing}><section className="content points-content"><button className="back-link" onClick={goSearch}><ArrowLeft size={16}/> 返回搜尋</button><div className="resident-header"><div><p className="kicker">CURRENT RESIDENT / QR {student.qrCode}</p><h1>{student.name}</h1></div><div className="points-total"><span>目前總積分</span><strong>{student.points}</strong><small>POINTS</small></div></div><div className="history-link-row"><span>用一個小動作，留下今天的記錄。</span><button className="text-button" onClick={goHistory}><History size={16}/> 查看分數明細 <ArrowRight size={15}/></button></div><div className="action-grid"><div className="action-wrap"><button className="action-card positive" onClick={() => setMenu(menu === "house" ? null : "house")}><span className="action-icon">✦</span><span><strong>舍務</strong><small>日常整理與責任</small></span><ChevronDown size={17}/></button>{menu === "house" && <div className="choice-menu">{[1,5,10].map(v => <button key={v} onClick={() => add(v, "舍務")}>+{v} 分 <ArrowRight size={15}/></button>)}</div>}</div><div className="action-wrap"><button className="action-card positive" onClick={() => setMenu(menu === "coop" ? null : "coop")}><span className="action-icon">↗</span><span><strong>合作</strong><small>互助與團隊精神</small></span><ChevronDown size={17}/></button>{menu === "coop" && <div className="choice-menu">{[1,5,10].map(v => <button key={v} onClick={() => add(v, "合作")}>+{v} 分 <ArrowRight size={15}/></button>)}</div>}</div><button className="action-card reward" onClick={() => add(-10, "細獎換領")}><span className="action-icon"><Gift size={22}/></span><span><strong>細獎</strong><small>兌換獎勵 · 10 分</small></span><span className="minus">−10</span></button><button className="action-card reward" onClick={() => add(-30, "大獎換領")}><span className="action-icon"><Gift size={22}/></span><span><strong>大獎</strong><small>兌換獎勵 · 30 分</small></span><span className="minus">−30</span></button></div><div className="rules-note"><ClipboardList size={18}/><div><strong>小提醒</strong><span>兌換獎勵前會先檢查積分，系統不會讓總分變成負數。</span></div></div></section></PageShell>; }
 function Celebration({ name, delta, close }: { name: string; delta: number; close: () => void }) { return <div className="celebration-overlay" role="dialog" aria-modal="true"><div className="confetti confetti-one">★</div><div className="confetti confetti-two">✦</div><div className="confetti confetti-three">●</div><div className="celebration-card"><div className="celebration-sun"><img src={SUN_ICON} alt="陽光公仔"/></div><p className="kicker">GREAT JOB!</p><h2>太棒啦！</h2><p className="celebration-message"><strong>{name}</strong> 獲得 <b>+{delta} 分</b></p><p className="celebration-subtitle">每一點努力，都值得一個大大的讚！</p><button className="primary wide" onClick={close}><Sparkles size={18}/> 繼續加油</button></div></div>; }
 function EditLog({ log, onClose, onSave }: { log: Log; onClose: () => void; onSave: (id: string, delta: number, item: string) => void }) { const [delta, setDelta] = useState(String(log.delta)); const [item, setItem] = useState(log.item); const submit = (e: React.FormEvent) => { e.preventDefault(); const value = Number(delta); if (!Number.isFinite(value) || !Number.isInteger(value) || value === 0) { toast.error("請輸入不為 0 的整數分數"); return; } if (!item.trim()) { toast.error("請輸入異動項目名稱"); return; } onSave(log.id, value, item.trim()); }; return <div className="modal-backdrop" onClick={onClose}><div className="student-modal edit-log-modal" onClick={e => e.stopPropagation()}><button className="modal-close" onClick={onClose}><X size={19}/></button><div className="modal-sun">✎</div><p className="kicker">EDIT POINTS</p><h2>修改分數</h2><p className="muted">修改後會自動重算這位宿生之後每筆紀錄的餘額。</p><form onSubmit={submit}><label>項目名稱<input value={item} onChange={e => setItem(e.target.value)} placeholder="例如：舍務"/></label><label>分數變動<input value={delta} onChange={e => setDelta(e.target.value)} inputMode="numeric" placeholder="例如：+5 或 -10"/></label><button className="primary wide" type="submit"><Sparkles size={18}/> 儲存分數修改</button></form></div></div>; }
-function HistoryPage({ student, logs, undo, edit, back, onLogout, onRefresh, refreshing }: { student: Student; logs: Log[]; undo: (id: string) => void; edit: (log: Log) => void; back: () => void; onLogout: () => void; onRefresh: () => void; refreshing: boolean }) { const own = logs.filter(l => l.studentId === student.id).sort((a,b) => +new Date(b.at) - +new Date(a.at)); return <PageShell eyebrow="04 / HISTORY" onHome={back} onLogout={onLogout} onRefresh={onRefresh} refreshing={refreshing}><section className="content history-content"><button className="back-link" onClick={back}><ArrowLeft size={16}/> 返回積分管理</button><div className="history-header"><div><p className="kicker">POINTS HISTORY / {student.id}</p><h1>{student.name} 的明細</h1></div><div className="history-total"><span>目前總積分</span><strong>{student.points}</strong></div></div><div className="section-heading"><span>異動紀錄</span><span className="line"/><small>最新在上</small></div>{own.length === 0 ? <div className="empty"><History size={32}/><h3>還沒有紀錄</h3><p>完成一次舍務或合作，就會在這裡留下足跡。</p></div> : <div className="log-list">{own.map(log => <div className="log-row" key={log.id}><div className={`delta-mark ${log.delta > 0 ? "up" : "down"}`}>{log.delta > 0 ? "+" : "−"}</div><div className="log-info"><strong>{log.item}</strong><small>{new Date(log.at).toLocaleString("zh-HK", { dateStyle: "medium", timeStyle: "short" })}</small></div><div className={`log-delta ${log.delta > 0 ? "green" : "red"}`}>{log.delta > 0 ? "+" : ""}{log.delta}</div><div className="balance"><small>餘額</small><strong>{log.balance}</strong></div><div className="log-actions"><button className="edit-log" onClick={() => edit(log)}>修改</button><button className="undo" onClick={() => undo(log.id)}>撤銷</button></div></div>)}</div>}<div className="history-foot"><ShieldCheck size={16}/> 撤銷後會恢復當時的積分變動，並從紀錄中移除。</div></section></PageShell>; }
-export default function Home() { const syncLogin = trpc.sync.login.useMutation(); const syncSave = trpc.sync.save.useMutation(); const authForSync = readAuth(); const [authenticated, setAuthenticated] = useState(() => Boolean(readAuth())); const [page, setPage] = useState<"login" | "search" | "points" | "history">(() => readAuth() ? "search" : "login"); const [showAddStudent, setShowAddStudent] = useState(false); const [studentToEdit, setStudentToEdit] = useState<Student | null>(null); const [logToEdit, setLogToEdit] = useState<Log | null>(null); const [celebration, setCelebration] = useState<{ name: string; delta: number } | null>(null); const [students, setStudents] = useState<Student[]>(loadStudents); const [logs, setLogs] = useState<Log[]>(loadLogs); const [selectedId, setSelectedId] = useState<string | null>(null); const student = students.find(s => s.id === selectedId) || students[0]; const syncToken = authForSync?.token?.trim() || null; const snapshotQuery = trpc.sync.snapshot.useQuery({ token: syncToken || "pending-auth" }, { enabled: authenticated && Boolean(syncToken), refetchInterval: 7000, refetchOnWindowFocus: true }); const seededRemote = useRef(false); const expireSyncSession = () => { clearAuth(); setAuthenticated(false); setSelectedId(null); setPage("login"); seededRemote.current = false; toast.error("登入狀態已失效，請重新登入。"); }; const saveRemote = (nextStudents: Student[], nextLogs: Log[]) => { const auth = readAuth(); if (!auth || !isCompactJws(auth.token)) { if (authenticated) expireSyncSession(); return; } syncSave.mutate({ token: auth.token, students: nextStudents, logs: nextLogs }, { onError: error => { if (isSyncAuthError(error)) expireSyncSession(); else toast.error("雲端同步失敗，資料暫時保留在本機。"); } }); }; useEffect(() => { if (snapshotQuery.error && isSyncAuthError(snapshotQuery.error)) expireSyncSession(); }, [snapshotQuery.error]); useEffect(() => persist(students, logs), [students, logs]); useEffect(() => { const remote = snapshotQuery.data; if (!remote || seededRemote.current) return; seededRemote.current = true; if (remote.students.length === 0 && students.length > 0) { saveRemote(students, logs); return; } setStudents(remote.students); setLogs(remote.logs); }, [snapshotQuery.data]); useEffect(() => { const onVisible = () => { if (document.visibilityState === "visible" && authenticated && Boolean(syncToken)) snapshotQuery.refetch(); }; window.addEventListener("visibilitychange", onVisible); window.addEventListener("focus", onVisible); return () => { window.removeEventListener("visibilitychange", onVisible); window.removeEventListener("focus", onVisible); }; }, [authenticated, syncToken, snapshotQuery.refetch]); const refresh = async () => { if (!authenticated || !syncToken) { toast.error("請先登入，才可以更新雲端資料。"); return; } await snapshotQuery.refetch(); toast.success("資料已更新"); }; const select = (s: Student) => { setSelectedId(s.id); setPage("points"); }; const addStudent = (newStudent: Student) => { const nextStudents = [...students, newStudent]; setStudents(nextStudents); saveRemote(nextStudents, logs); setShowAddStudent(false); toast.success(`${newStudent.name} 已加入晨樂加油站！`); }; const updateStudent = (updated: Student) => { const oldId = studentToEdit?.id; if (!oldId) return; const nextStudents = students.map(s => s.id === oldId ? updated : s); const nextLogs = logs.map(log => log.studentId === oldId ? { ...log, studentId: updated.id } : log); setStudents(nextStudents); setLogs(nextLogs); saveRemote(nextStudents, nextLogs); if (selectedId === oldId) setSelectedId(updated.id); setShowAddStudent(false); setStudentToEdit(null); toast.success(`${updated.name} 的資料已更新。`); }; const updateLog = (id: string, delta: number, item: string) => { const target = logs.find(log => log.id === id); if (!target) return; const studentLogs = logs.filter(log => log.studentId === target.studentId).map(log => log.id === id ? { ...log, delta, item } : log).sort((a,b) => +new Date(a.at) - +new Date(b.at)); let balance = 0; for (const log of studentLogs) { balance += log.delta; if (balance < 0) { toast.error("修改後積分不能低於 0，請調整分數。"); return; } } const balances = new Map<string, number>(); balance = 0; studentLogs.forEach(log => { balance += log.delta; balances.set(log.id, balance); }); const nextLogs = logs.map(log => { const changed = log.id === id ? { ...log, delta, item } : log; return changed.studentId === target.studentId ? { ...changed, balance: balances.get(changed.id) ?? changed.balance } : changed; }); const nextStudents = students.map(s => s.id === target.studentId ? { ...s, points: balance } : s); setLogs(nextLogs); setStudents(nextStudents); saveRemote(nextStudents, nextLogs); setLogToEdit(null); toast.success("分數紀錄已修改，總積分已更新。"); }; const update = (delta: number, item: string) => { if (delta < 0 && student.points < Math.abs(delta)) { playFeedback("error"); toast.error("積分不足，無法換領！"); return; } const balance = student.points + delta; const log: Log = { id: `${Date.now()}-${Math.random()}`, studentId: student.id, at: new Date().toISOString(), item, delta, balance }; const nextStudents = students.map(s => s.id === student.id ? { ...s, points: balance } : s); const nextLogs = [...logs, log]; setStudents(nextStudents); setLogs(nextLogs); saveRemote(nextStudents, nextLogs); playFeedback(delta > 0 ? "positive" : "reward"); toast.success(`${student.name} ${item} ${delta > 0 ? "+" : ""}${delta}分！`); if (delta > 0) setCelebration({ name: student.name, delta }); }; const undo = (id: string) => { const target = logs.find(l => l.id === id); if (!target) return; const nextStudents = students.map(s => s.id === target.studentId ? { ...s, points: Math.max(0, s.points - target.delta) } : s); const nextLogs = logs.filter(l => l.id !== id); setStudents(nextStudents); setLogs(nextLogs); saveRemote(nextStudents, nextLogs); toast.success("已撤銷這筆異動，積分已恢復。"); }; const login = async (account: string, password: string, remember: boolean) => { if (syncLogin.isPending) return; try { const result = await syncLogin.mutateAsync({ account, password }); if (!saveAuth(remember, result.token)) { toast.error("無法保存登入狀態，請確認瀏覽器允許本機儲存。"); return; } setAuthenticated(true); setPage("search"); } catch { toast.error("無法連接同步服務，請稍後再試。"); } }; const logout = () => { clearAuth(); setAuthenticated(false); setSelectedId(null); setPage("login"); toast.success("已登出晨樂加油站。"); }; if (!authenticated || page === "login") return <Login onLogin={login} busy={syncLogin.isPending}/>; if (page === "search") return <><Search onLogout={logout} onRefresh={refresh} refreshing={snapshotQuery.isFetching} students={students} select={select} onAdd={() => setShowAddStudent(true)} onEdit={studentToEdit => { setStudentToEdit(studentToEdit); setShowAddStudent(true); }} onDelete={studentToDelete => { if (window.confirm(`確定要刪除「${studentToDelete.name}」嗎？他的積分紀錄也會一併移除。`)) { const nextStudents = students.filter(s => s.id !== studentToDelete.id); const nextLogs = logs.filter(log => log.studentId !== studentToDelete.id); setStudents(nextStudents); setLogs(nextLogs); saveRemote(nextStudents, nextLogs); if (selectedId === studentToDelete.id) { setSelectedId(null); setPage("search"); } toast.success(`${studentToDelete.name} 已刪除。`); } }}/>{showAddStudent && <NewStudent students={students.filter(s => s.id !== studentToEdit?.id)} initial={studentToEdit || undefined} onClose={() => { setShowAddStudent(false); setStudentToEdit(null); }} onSave={studentToEdit ? updateStudent : addStudent}/>}</>; if (page === "history") return <><HistoryPage onLogout={logout} onRefresh={refresh} refreshing={snapshotQuery.isFetching} student={student} logs={logs} undo={undo} edit={log => setLogToEdit(log)} back={() => setPage("points")}/>{logToEdit && <EditLog log={logToEdit} onClose={() => setLogToEdit(null)} onSave={updateLog}/>}</>; return <><Points onLogout={logout} onRefresh={refresh} refreshing={snapshotQuery.isFetching} student={student} update={update} goSearch={() => setPage("search")} goHistory={() => setPage("history")}/>{celebration && <Celebration name={celebration.name} delta={celebration.delta} close={() => setCelebration(null)}/>}</>; }
+function HistoryPage({ student, logs, undo, edit, back, onLogout, onRefresh, refreshing }: { student: Student; logs: Log[]; undo: (id: string) => void; edit: (log: Log) => void; back: () => void; onLogout: () => void; onRefresh: () => void; refreshing: boolean }) { const own = logs.filter(l => l.studentId === student.id).sort((a,b) => +new Date(b.at) - +new Date(a.at)); return <PageShell eyebrow="04 / HISTORY" onHome={back} onLogout={onLogout} onRefresh={onRefresh} refreshing={refreshing}><section className="content history-content"><button className="back-link" onClick={back}><ArrowLeft size={16}/> 返回積分管理</button><div className="history-header"><div><p className="kicker">POINTS HISTORY / QR {student.qrCode}</p><h1>{student.name} 的明細</h1></div><div className="history-total"><span>目前總積分</span><strong>{student.points}</strong></div></div><div className="section-heading"><span>異動紀錄</span><span className="line"/><small>最新在上</small></div>{own.length === 0 ? <div className="empty"><History size={32}/><h3>還沒有紀錄</h3><p>完成一次舍務或合作，就會在這裡留下足跡。</p></div> : <div className="log-list">{own.map(log => <div className="log-row" key={log.id}><div className={`delta-mark ${log.delta > 0 ? "up" : "down"}`}>{log.delta > 0 ? "+" : "−"}</div><div className="log-info"><strong>{log.item}</strong><small>{new Date(log.at).toLocaleString("zh-HK", { dateStyle: "medium", timeStyle: "short" })}</small></div><div className={`log-delta ${log.delta > 0 ? "green" : "red"}`}>{log.delta > 0 ? "+" : ""}{log.delta}</div><div className="balance"><small>餘額</small><strong>{log.balance}</strong></div><div className="log-actions"><button className="edit-log" onClick={() => edit(log)}>修改</button><button className="undo" onClick={() => undo(log.id)}>撤銷</button></div></div>)}</div>}<div className="history-foot"><ShieldCheck size={16}/> 撤銷後會恢復當時的積分變動，並從紀錄中移除。</div></section></PageShell>; }
+export default function Home() {
+  const syncLogin = trpc.sync.login.useMutation();
+  const syncSave = trpc.sync.save.useMutation();
+  const authForSync = readAuth();
+  const [authenticated, setAuthenticated] = useState(() => Boolean(readAuth()));
+  const [page, setPage] = useState<"login" | "search" | "points" | "history">(() => readAuth() ? "search" : "login");
+  const [showAddStudent, setShowAddStudent] = useState(false);
+  const [studentToEdit, setStudentToEdit] = useState<Student | null>(null);
+  const [logToEdit, setLogToEdit] = useState<Log | null>(null);
+  const [celebration, setCelebration] = useState<{ name: string; delta: number } | null>(null);
+  const [students, setStudents] = useState<Student[]>(loadStudents);
+  const [logs, setLogs] = useState<Log[]>(loadLogs);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const student = students.find(item => item.id === selectedId) || students[0];
+  const syncToken = authForSync?.token.trim() || null;
+  const snapshotQuery = trpc.sync.snapshot.useQuery(
+    { token: syncToken || "pending-auth" },
+    { enabled: authenticated && Boolean(syncToken), refetchInterval: 7000, refetchOnWindowFocus: true },
+  );
+  const seededRemote = useRef(false);
+
+  const expireSyncSession = () => {
+    clearAuth();
+    setAuthenticated(false);
+    setSelectedId(null);
+    setPage("login");
+    seededRemote.current = false;
+    toast.error("登入狀態已失效，請重新登入。");
+  };
+
+  const saveRemote = (nextStudents: Student[], nextLogs: Log[]) => {
+    const auth = readAuth();
+    if (!auth || !isCompactJws(auth.token)) {
+      if (authenticated) expireSyncSession();
+      return;
+    }
+    syncSave.mutate({ token: auth.token, students: nextStudents, logs: nextLogs }, {
+      onError: error => {
+        if (isSyncAuthError(error)) expireSyncSession();
+        else toast.error("雲端同步失敗，資料暫時保留在本機。");
+      },
+    });
+  };
+
+  useEffect(() => {
+    if (snapshotQuery.error && isSyncAuthError(snapshotQuery.error)) expireSyncSession();
+  }, [snapshotQuery.error]);
+
+  useEffect(() => persist(students, logs), [students, logs]);
+
+  useEffect(() => {
+    const remote = snapshotQuery.data;
+    if (!remote || seededRemote.current) return;
+    seededRemote.current = true;
+    if (shouldSeedRemoteSnapshot(remote.students.length, students.length)) {
+      saveRemote(students, logs);
+      return;
+    }
+    setStudents(remote.students);
+    setLogs(remote.logs);
+  }, [snapshotQuery.data]);
+
+  useEffect(() => {
+    const onVisible = () => {
+      if (document.visibilityState === "visible" && authenticated && Boolean(syncToken)) snapshotQuery.refetch();
+    };
+    window.addEventListener("visibilitychange", onVisible);
+    window.addEventListener("focus", onVisible);
+    return () => {
+      window.removeEventListener("visibilitychange", onVisible);
+      window.removeEventListener("focus", onVisible);
+    };
+  }, [authenticated, syncToken, snapshotQuery.refetch]);
+
+  const refresh = async () => {
+    if (!authenticated || !syncToken) {
+      toast.error("請先登入，才可以更新雲端資料。");
+      return;
+    }
+    await snapshotQuery.refetch();
+    toast.success("資料已更新");
+  };
+  const select = (nextStudent: Student) => {
+    setSelectedId(nextStudent.id);
+    setPage("points");
+  };
+  const addStudent = (newStudent: Student) => {
+    const nextStudents = [...students, newStudent];
+    setStudents(nextStudents);
+    saveRemote(nextStudents, logs);
+    setShowAddStudent(false);
+    toast.success(`${newStudent.name} 已加入晨樂加油站！`);
+  };
+  const updateStudent = (updated: Student) => {
+    const oldId = studentToEdit?.id;
+    if (!oldId) return;
+    const nextStudents = students.map(item => item.id === oldId ? updated : item);
+    setStudents(nextStudents);
+    saveRemote(nextStudents, logs);
+    setShowAddStudent(false);
+    setStudentToEdit(null);
+    toast.success(`${updated.name} 的資料已更新。`);
+  };
+  const updateLog = (id: string, delta: number, item: string) => {
+    const target = logs.find(log => log.id === id);
+    if (!target) return;
+    const studentLogs = logs
+      .filter(log => log.studentId === target.studentId)
+      .map(log => log.id === id ? { ...log, delta, item } : log)
+      .sort((a, b) => +new Date(a.at) - +new Date(b.at));
+    let balance = 0;
+    for (const log of studentLogs) {
+      balance += log.delta;
+      if (balance < 0) {
+        toast.error("修改後積分不能低於 0，請調整分數。");
+        return;
+      }
+    }
+    const balances = new Map<string, number>();
+    balance = 0;
+    studentLogs.forEach(log => {
+      balance += log.delta;
+      balances.set(log.id, balance);
+    });
+    const nextLogs = logs.map(log => {
+      const changed = log.id === id ? { ...log, delta, item } : log;
+      return changed.studentId === target.studentId ? { ...changed, balance: balances.get(changed.id) ?? changed.balance } : changed;
+    });
+    const nextStudents = students.map(item => item.id === target.studentId ? { ...item, points: balance } : item);
+    setLogs(nextLogs);
+    setStudents(nextStudents);
+    saveRemote(nextStudents, nextLogs);
+    setLogToEdit(null);
+    toast.success("分數紀錄已修改，總積分已更新。");
+  };
+  const update = (delta: number, item: string) => {
+    if (!student) return;
+    if (delta < 0 && student.points < Math.abs(delta)) {
+      playFeedback("error");
+      toast.error("積分不足，無法換領！");
+      return;
+    }
+    const balance = student.points + delta;
+    const log: Log = { id: `${Date.now()}-${Math.random()}`, studentId: student.id, at: new Date().toISOString(), item, delta, balance };
+    const nextStudents = students.map(item => item.id === student.id ? { ...item, points: balance } : item);
+    const nextLogs = [...logs, log];
+    setStudents(nextStudents);
+    setLogs(nextLogs);
+    saveRemote(nextStudents, nextLogs);
+    playFeedback(delta > 0 ? "positive" : "reward");
+    toast.success(`${student.name} ${item} ${delta > 0 ? "+" : ""}${delta}分！`);
+    if (delta > 0) setCelebration({ name: student.name, delta });
+  };
+  const undo = (id: string) => {
+    const target = logs.find(log => log.id === id);
+    if (!target) return;
+    const nextStudents = students.map(item => item.id === target.studentId ? { ...item, points: Math.max(0, item.points - target.delta) } : item);
+    const nextLogs = logs.filter(log => log.id !== id);
+    setStudents(nextStudents);
+    setLogs(nextLogs);
+    saveRemote(nextStudents, nextLogs);
+    toast.success("已撤銷這筆異動，積分已恢復。");
+  };
+  const login = async (account: string, password: string, remember: boolean) => {
+    if (syncLogin.isPending) return;
+    try {
+      const result = await syncLogin.mutateAsync({ account, password });
+      if (!saveAuth(remember, result.token)) {
+        toast.error("無法保存登入狀態，請確認瀏覽器允許本機儲存。");
+        return;
+      }
+      setAuthenticated(true);
+      setPage("search");
+    } catch {
+      toast.error("無法連接同步服務，請稍後再試。");
+    }
+  };
+  const logout = () => {
+    clearAuth();
+    setAuthenticated(false);
+    setSelectedId(null);
+    setPage("login");
+    toast.success("已登出晨樂加油站。");
+  };
+
+  if (!authenticated || page === "login") return <Login onLogin={login} busy={syncLogin.isPending} />;
+  if (page === "search") return <><Search onLogout={logout} onRefresh={refresh} refreshing={snapshotQuery.isFetching} students={students} select={select} onAdd={() => setShowAddStudent(true)} onEdit={nextStudent => { setStudentToEdit(nextStudent); setShowAddStudent(true); }} onDelete={studentToDelete => { if (window.confirm(`確定要刪除「${studentToDelete.name}」嗎？他的積分紀錄也會一併移除。`)) { const nextStudents = students.filter(item => item.id !== studentToDelete.id); const nextLogs = logs.filter(log => log.studentId !== studentToDelete.id); setStudents(nextStudents); setLogs(nextLogs); saveRemote(nextStudents, nextLogs); if (selectedId === studentToDelete.id) { setSelectedId(null); setPage("search"); } toast.success(`${studentToDelete.name} 已刪除。`); } }} />{showAddStudent && <NewStudent students={students.filter(item => item.id !== studentToEdit?.id)} initial={studentToEdit || undefined} onClose={() => { setShowAddStudent(false); setStudentToEdit(null); }} onSave={studentToEdit ? updateStudent : addStudent} />}</>;
+  if (page === "history") return <><HistoryPage onLogout={logout} onRefresh={refresh} refreshing={snapshotQuery.isFetching} student={student!} logs={logs} undo={undo} edit={log => setLogToEdit(log)} back={() => setPage("points")} />{logToEdit && <EditLog log={logToEdit} onClose={() => setLogToEdit(null)} onSave={updateLog} />}</>;
+  return <><Points onLogout={logout} onRefresh={refresh} refreshing={snapshotQuery.isFetching} student={student!} update={update} goSearch={() => setPage("search")} goHistory={() => setPage("history")} />{celebration && <Celebration name={celebration.name} delta={celebration.delta} close={() => setCelebration(null)} />}</>;
+}

@@ -45,7 +45,7 @@ export const appRouter = router({
     save: publicProcedure
       .input(z.object({
         token: z.string().min(1),
-        students: z.array(z.object({ id: z.string().min(1), name: z.string().min(1), points: z.number().int().min(0) })),
+        students: z.array(z.object({ id: z.string().min(1), qrCode: z.string().trim().min(1).max(160), name: z.string().min(1), points: z.number().int().min(0), nfcCode: z.string().trim().min(1).max(160).optional() })),
         logs: z.array(z.object({ id: z.string().min(1), studentId: z.string().min(1), at: z.string(), item: z.string().min(1), delta: z.number().int().refine(value => value !== 0), balance: z.number().int().min(0) })),
       }))
       .mutation(async ({ input }) => {

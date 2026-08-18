@@ -7,6 +7,7 @@ create extension if not exists pgcrypto;
 create table if not exists public.students (
   id uuid primary key default gen_random_uuid(),
   qr_id text not null unique,
+  nfc_id text check (nfc_id is null or char_length(trim(nfc_id)) between 1 and 160),
   name text not null check (char_length(trim(name)) between 1 and 80),
   points integer not null default 0 check (points >= 0),
   created_at timestamptz not null default now(),
@@ -28,6 +29,10 @@ create index if not exists point_logs_student_created_idx
 
 create index if not exists students_qr_id_idx
   on public.students (qr_id);
+
+create unique index if not exists students_nfc_id_unique_idx
+  on public.students (nfc_id)
+  where nfc_id is not null;
 
 create or replace function public.set_updated_at()
 returns trigger

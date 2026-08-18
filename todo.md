@@ -319,14 +319,23 @@
 - [x] 重新登入後等待或觸發 snapshot polling，確認查詢恢復且 console 無 API Query Error。
 - [x] 確認 snapshot query 已停用過期 token 的自動 retry，並完成回歸驗證。
 - [x] 保存本次 Sync session expired 修正版 checkpoint。
-- [ ] 推送修正版至 GitHub main 並觸發 Cloudflare Pages 部署。
-- [ ] 在 production 驗證過期 session 降級後不再出現全域 API Query Error。
+- [x] 推送修正版至 GitHub main 並觸發 Cloudflare Pages 部署。
+- [x] 在 production 驗證過期 session 降級後不再出現全域 API Query Error。
 
 ---
 
 # 宿生 QR Code 與 NFC Code 分離待辦
 
-- [ ] 為每位宿生資料模型新增獨立的 `qrCode` 與 `nfcCode` 欄位，並設計現有資料升級策略。
-- [ ] 更新新增／編輯宿生表單，讓 QR Code 與 NFC Code 可分開輸入並分別驗證重複值。
-- [ ] 更新文字搜尋、QR 掃描及 NFC 讀取，分別以對應 Code 尋找同一位宿生。
+- [x] 為每位宿生資料模型新增獨立的 `qrCode` 與 `nfcCode` 欄位，並設計現有資料升級策略。
+- [x] 更新新增／編輯宿生表單，讓 QR Code 與 NFC Code 可分開輸入並分別驗證重複值。
+- [x] 更新文字搜尋、QR 掃描及 NFC 讀取，分別以對應 Code 尋找同一位宿生。
 - [ ] 驗證 LocalStorage 與 Supabase snapshot 的向後相容、跨裝置同步、build 及部署。
+- [x] 在截圖所示的「編輯宿生資料」視窗，於 QR Code ID 下方新增「NFC Code／UID（選填）」輸入欄位。
+- [x] 儲存後以 NFC Code／UID 作為 NFC 嗶卡的優先辨識值，並在手機版確認欄位清晰可填寫。
+- [x] 將 `Student`／`SyncStudent` 改為包含內部 `id`、`qrCode` 及 `nfcCode`，並將舊 LocalStorage 資料安全升級。
+- [x] 將 QR 掃描、文字搜尋、畫面顯示及 Supabase round-trip 改為使用獨立 `qrCode`；NFC 嗶卡只以 `nfcCode` 優先識別。
+- [x] 新增 QR Code 欄位的 regression tests，覆蓋舊資料升級、重複值檢查與同步資料合約。
+- [x] 將舊 LocalStorage 及預載宿生升級為 UUID 格式內部 ID，避免非 UUID 寫入 Supabase `students.id`。
+- [x] 補上首次空遠端 seed、舊資料升級、QR／NFC 重複值與 snapshot round-trip 的 UUID 安全回歸測試。
+- [x] 明確驗證 `qrCode` 與 `nfcCode` 經 Supabase `replaceSnapshot()`／`readSnapshot()` 後的值完全一致。
+- [x] 以 UUID 升級後的舊 LocalStorage 資料驗證 seed／save 不會向 Supabase `students.id` 寫入非 UUID 值。
