@@ -362,3 +362,5 @@
 - [ ] 完成 TypeScript、Vitest、production build、瀏覽器登入驗證、checkpoint、GitHub main push 及 Cloudflare Pages 部署驗證。
 - [x] 移除登入頁硬編碼的 `1234 / 1234` 前端預檢，改由伺服器端新憑證統一驗證並顯示正確錯誤提示。
 - [ ] 為 production server 新增不依賴登入或 Supabase 的健康檢查，並診斷／恢復新版本部署後的 API 無回應問題。
+- [x] 將新登入帳號改為不分英文大小寫比對，並測試 boarding、BOARDING 與混合大小寫均可登入。
+- [x] 在登入密碼欄加入預設隱藏、可切換顯示的眼睛圖示按鈕，並提供清晰的可及性標籤及手機版觸控尺寸。

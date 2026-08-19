@@ -94,3 +94,11 @@ button:focus-visible,input:focus-visible { outline:3px solid rgba(213,154,57,.55
   .refresh-label { display:inline; }
   .logout-button { padding:8px 7px; font-size:11px; }
 }
+
+/* 登入密碼欄：提供清晰而不干擾輸入的顯示／隱藏控制。 */
+.password-input-wrap { position:relative; width:100%; }
+.login-card .password-input-wrap input { width:100%; box-sizing:border-box; padding-right:58px; }
+.password-visibility-button { position:absolute; top:50%; right:4px; transform:translateY(-50%); width:44px; height:44px; border:0; border-radius:10px; background:transparent; color:var(--ink); display:grid; place-items:center; }
+.password-visibility-button:hover { background:#dff3ff; }
+.password-visibility-button:active { transform:translateY(-50%) scale(.94); }
+.password-visibility-button:focus-visible { outline:3px solid rgba(213,154,57,.55); outline-offset:1px; }

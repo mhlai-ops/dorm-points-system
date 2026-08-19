@@ -33,10 +33,12 @@ export const appRouter = router({
       .mutation(async ({ input }) => {
         const account = process.env.DORM_SYNC_ACCOUNT;
         const password = process.env.DORM_SYNC_PASSWORD;
-        if (!account || !password || input.account !== account || input.password !== password) {
+        const normalizedAccount = input.account.trim().toLocaleLowerCase("en-US");
+        const normalizedConfiguredAccount = account?.trim().toLocaleLowerCase("en-US");
+        if (!normalizedConfiguredAccount || !password || normalizedAccount !== normalizedConfiguredAccount || input.password !== password) {
           throw new Error("帳戶號碼或帳戶密碼不正確");
         }
-        return { token: await createSyncToken(input.account) };
+        return { token: await createSyncToken(normalizedConfiguredAccount) };
       }),
     snapshot: publicProcedure
       .input(z.object({ token: z.string().min(1) }))
