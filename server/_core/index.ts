@@ -52,6 +52,9 @@ async function startServer() {
   });
   registerStorageProxy(app);
   registerOAuthRoutes(app);
+  app.get("/api/healthz", (_req, res) => {
+    res.status(200).json({ status: "ok" });
+  });
   // tRPC API
   app.use(
     "/api/trpc",
