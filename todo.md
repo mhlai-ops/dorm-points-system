@@ -351,3 +351,13 @@
 - [x] 新增 `client/public/manifest.json`，設定晨樂加油站名稱、standalone 顯示模式、開始網址、配色與 192／512 圖示。
 - [x] 新增自動化檢查，驗證 PWA HTML meta、Manifest 及 icon 檔均會輸出到 production build。
 - [x] 完成 TypeScript、Vitest、production build、手機／production PWA 資產檢查、checkpoint、GitHub main push 及 Cloudflare Pages 部署驗證。
+
+---
+
+# 晨樂加油站登入帳號更新待辦
+
+- [x] 定位目前固定登入憑證及相關回歸測試，確認不會遺漏舊帳號。
+- [x] 移除 `1234 / 1234` 舊登入憑證，改為帳號 `boarding` 與使用者指定的新密碼。
+- [x] 更新登入測試，驗證新憑證可登入且舊 `1234 / 1234` 會被拒絕。
+- [ ] 完成 TypeScript、Vitest、production build、瀏覽器登入驗證、checkpoint、GitHub main push 及 Cloudflare Pages 部署驗證。
+- [x] 移除登入頁硬編碼的 `1234 / 1234` 前端預檢，改由伺服器端新憑證統一驗證並顯示正確錯誤提示。

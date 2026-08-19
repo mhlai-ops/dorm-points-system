@@ -31,7 +31,9 @@ export const appRouter = router({
     login: publicProcedure
       .input(z.object({ account: z.string(), password: z.string() }))
       .mutation(async ({ input }) => {
-        if (input.account !== "1234" || input.password !== "1234") {
+        const account = process.env.DORM_SYNC_ACCOUNT;
+        const password = process.env.DORM_SYNC_PASSWORD;
+        if (!account || !password || input.account !== account || input.password !== password) {
           throw new Error("帳戶號碼或帳戶密碼不正確");
         }
         return { token: await createSyncToken(input.account) };
