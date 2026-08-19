@@ -350,4 +350,4 @@
 - [x] 在 HTML head 加入 Apple Touch Icon、標準 192px icon、Manifest 及全螢幕 web app meta 標籤。
 - [x] 新增 `client/public/manifest.json`，設定晨樂加油站名稱、standalone 顯示模式、開始網址、配色與 192／512 圖示。
 - [x] 新增自動化檢查，驗證 PWA HTML meta、Manifest 及 icon 檔均會輸出到 production build。
-- [ ] 完成 TypeScript、Vitest、production build、手機／production PWA 資產檢查、checkpoint、GitHub main push 及 Cloudflare Pages 部署驗證。
+- [x] 完成 TypeScript、Vitest、production build、手機／production PWA 資產檢查、checkpoint、GitHub main push 及 Cloudflare Pages 部署驗證。
