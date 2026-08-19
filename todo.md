@@ -340,3 +340,14 @@
 - [x] 明確驗證 `qrCode` 與 `nfcCode` 經 Supabase `replaceSnapshot()`／`readSnapshot()` 後的值完全一致。
 - [x] 以 UUID 升級後的舊 LocalStorage 資料驗證 seed／save 不會向 Supabase `students.id` 寫入非 UUID 值。
 - [x] 在 tRPC snapshot 讀取邊界正規化空白 NFC Code，避免跨裝置快照的 `null` 值被後續儲存操作送回 API。
+
+---
+
+# 晨樂加油站 PWA 與主畫面 App Icon 待辦
+
+- [x] 檢查現有 `client/index.html`、`client/public/` 與建置輸出，確認 PWA 設定切入點。
+- [x] 將使用者提供的方形品牌圖片轉換為 `/icon.png`，供 iOS、Android 及 Manifest 共用。
+- [x] 在 HTML head 加入 Apple Touch Icon、標準 192px icon、Manifest 及全螢幕 web app meta 標籤。
+- [x] 新增 `client/public/manifest.json`，設定晨樂加油站名稱、standalone 顯示模式、開始網址、配色與 192／512 圖示。
+- [x] 新增自動化檢查，驗證 PWA HTML meta、Manifest 及 icon 檔均會輸出到 production build。
+- [ ] 完成 TypeScript、Vitest、production build、手機／production PWA 資產檢查、checkpoint、GitHub main push 及 Cloudflare Pages 部署驗證。

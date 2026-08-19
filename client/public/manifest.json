@@ -1,0 +1,24 @@
+{
+  "id": "/",
+  "name": "晨樂加油站",
+  "short_name": "晨樂加油站",
+  "description": "為小朋友設計的積分加油站，記錄每天的好表現。",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#fff9e8",
+  "theme_color": "#1769c2",
+  "icons": [
+    {
+      "src": "/icon.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}
