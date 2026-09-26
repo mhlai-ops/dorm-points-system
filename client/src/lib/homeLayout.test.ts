@@ -12,12 +12,21 @@ describe("晨樂加油站首頁佈局", () => {
     expect(searchSection).not.toContain("onEdit");
   });
 
-  it("保留預設收起的宿生積分資訊專區及搜尋入口", () => {
-    expect(source).toContain('useState(false)');
-    expect(source).toContain('student-info-section ${infoOpen ? "is-open" : ""}');
-    expect(source).toContain("宿生積分資訊");
-    expect(source).toContain("預設隱藏名單");
-    expect(source).toContain("student-info-row");
+  it("提供全體宿生積分彈窗入口、快速搜尋及關閉機制", () => {
+    const searchSection = source.slice(source.indexOf("function Search"), source.indexOf("function Points"));
+    expect(searchSection).toContain("查看全體宿生積分");
+    expect(searchSection).toContain("student-list-modal-backdrop");
+    expect(searchSection).toContain("student-list-close");
+    expect(searchSection).toContain("快速搜尋姓名、QR 或 NFC Code");
+    expect(searchSection).toContain("setListModalOpen(false)");
+  });
+
+  it("彈窗列表只提供查看積分卡片，不放刪除入口", () => {
+    const searchSection = source.slice(source.indexOf("function Search"), source.indexOf("function Points"));
+    expect(searchSection).toContain("student-info-row");
+    expect(searchSection).toContain("s.points");
+    expect(searchSection).not.toContain("刪除宿生");
+    expect(searchSection).not.toContain("delete-student");
   });
 
   it("把編輯及刪除管理動作放在選取宿生的積分頁", () => {

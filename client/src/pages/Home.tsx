@@ -146,7 +146,7 @@ function NewStudent({ onClose, onSave, students, initial }: { onClose: () => voi
 function decodeNfcRecord(record: any): string { try { if (typeof record?.data === "string") return record.data; if (record?.data instanceof DataView) return new TextDecoder().decode(record.data); if (record?.data) return new TextDecoder().decode(new Uint8Array(record.data)); } catch {} return ""; }
 function Search({ students, select, onAdd, onLogout, onRefresh, refreshing }: { students: Student[]; select: (s: Student) => void; onAdd: () => void; onLogout: () => void; onRefresh: () => void; refreshing: boolean }) {
   const [query, setQuery] = useState("");
-  const [infoOpen, setInfoOpen] = useState(false);
+  const [listModalOpen, setListModalOpen] = useState(false);
   const [camera, setCamera] = useState(false);
   const [cameraError, setCameraError] = useState("");
   const [nfcActive, setNfcActive] = useState(false);
@@ -244,10 +244,12 @@ function Search({ students, select, onAdd, onLogout, onRefresh, refreshing }: { 
         {camera && <div className="scanner"><div id="qr-reader" className="qr-reader"/><div className="scan-frame"><span/><span/><span/><span/></div><div className="scan-caption"><Camera size={16}/> 將 QR Code 放進框內</div></div>}
         {cameraError && <div className="camera-error"><X size={17}/><span>{cameraError}</span></div>}
       </div>
-      <section className={`student-info-section ${infoOpen ? "is-open" : ""}`} aria-labelledby="student-info-heading">
-        <button className="student-info-toggle" onClick={() => setInfoOpen(value => !value)} aria-expanded={infoOpen}><span><span className="info-icon">◎</span><span><strong id="student-info-heading">宿生積分資訊</strong><small>預設隱藏名單，搜尋或展開後查看分數</small></span></span><span className="info-toggle-label">{infoOpen ? "收起" : "點擊展開"}<ChevronDown size={18}/></span></button>
-        {infoOpen && <div className="student-info-body"><div className="student-info-search"><UserRound size={17}/><input value={query} onChange={e => setQuery(e.target.value)} placeholder="在宿生積分資訊中搜尋姓名、QR 或 NFC Code"/></div>{query.trim() ? (filtered.length ? <div className="student-info-results">{filtered.map(s => <button key={s.id} className="student-info-row" onClick={() => select(s)}><span className="avatar">{s.name[0]}</span><span><strong>{s.name}</strong><small>QR / {s.qrCode}{s.nfcCode ? ` · NFC / ${s.nfcCode}` : ""}</small></span><b>{s.points} 分</b><ArrowRight size={16}/></button>)}</div> : <p className="student-info-empty">找不到相符宿生，請嘗試姓名、QR 或 NFC Code。</p>) : <p className="student-info-empty">請輸入關鍵字搜尋宿生；選取後會直接進入積分卡片。</p>}</div>}
+      <section className="student-info-section" aria-labelledby="student-info-heading">
+        <div className="student-info-card-heading"><span><span className="info-icon">◎</span><span><strong id="student-info-heading">宿生積分資訊</strong><small>集中查看全體宿生目前分數</small></span></span><span className="student-count">{students.length} 人</span></div>
+        <div className="student-info-quick-search"><UserRound size={17}/><input value={query} onChange={e => setQuery(e.target.value)} placeholder="快速搜尋姓名、QR 或 NFC Code"/><span>{query ? `${filtered.length} 個結果` : "快速搜尋"}</span></div>
+        <button className="student-list-open-button" onClick={() => setListModalOpen(true)}><span><strong>查看全體宿生積分</strong><small>{students.length} 人 · 只提供查看及加減分操作</small></span><ArrowRight size={20}/></button>
       </section>
+      {listModalOpen && <div className="student-list-modal-backdrop" onClick={() => setListModalOpen(false)}><div className="student-list-modal" role="dialog" aria-modal="true" aria-labelledby="student-list-modal-title" onClick={event => event.stopPropagation()}><div className="student-list-modal-header"><div><p className="kicker">ALL RESIDENTS / POINTS</p><h2 id="student-list-modal-title">全體宿生積分</h2><small>{students.length} 位宿生 · 點擊查看積分卡片</small></div><button className="student-list-close" onClick={() => setListModalOpen(false)} aria-label="關閉全體宿生積分彈窗">✕</button></div><div className="student-info-search modal-search"><UserRound size={17}/><input value={query} onChange={e => setQuery(e.target.value)} placeholder="搜尋姓名、QR 或 NFC Code" autoFocus/></div><div className="student-list-modal-body">{(query.trim() ? filtered : students).map(s => <button key={s.id} className="student-info-row" onClick={() => { setListModalOpen(false); select(s); }}><span className="avatar">{s.name[0]}</span><span><strong>{s.name}</strong><small>QR / {s.qrCode}{s.nfcCode ? ` · NFC / ${s.nfcCode}` : ""}</small></span><b>{s.points} 分</b><ArrowRight size={16}/></button>)}{(query.trim() ? filtered : students).length === 0 && <p className="student-info-empty">找不到相符宿生，請嘗試其他關鍵字。</p>}</div></div></div>}
       <div className="hint"><QrCode size={18}/><span>相機權限只會在你點擊掃描時請求，資料不會上傳。</span></div>
     </section>
   </PageShell>;
