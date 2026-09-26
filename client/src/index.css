@@ -102,3 +102,39 @@ button:focus-visible,input:focus-visible { outline:3px solid rgba(213,154,57,.55
 .password-visibility-button:hover { background:#dff3ff; }
 .password-visibility-button:active { transform:translateY(-50%) scale(.94); }
 .password-visibility-button:focus-visible { outline:3px solid rgba(213,154,57,.55); outline-offset:1px; }
+
+/* 首頁資訊專區：名單預設收起，避免在首頁誤觸宿生操作。 */
+.student-info-section { margin-top:32px; border:2px solid var(--line); border-radius:20px; background:rgba(255,255,255,.82); box-shadow:0 5px 0 rgba(23,105,194,.08); overflow:hidden; }
+.student-info-toggle { width:100%; min-height:76px; border:0; background:transparent; padding:14px 17px; display:flex; align-items:center; justify-content:space-between; gap:14px; text-align:left; color:var(--ink-dark); }
+.student-info-toggle > span:first-child { display:flex; align-items:center; gap:12px; min-width:0; }
+.student-info-toggle strong,.student-info-toggle small { display:block; }
+.student-info-toggle strong { font-size:16px; }
+.student-info-toggle small { margin-top:4px; color:var(--muted); font-size:11px; font-weight:400; }
+.info-icon { width:38px; height:38px; flex:none; display:grid; place-items:center; border-radius:13px; background:#dff3ff; color:var(--ink); font-size:25px; font-weight:900; }
+.info-toggle-label { display:flex; align-items:center; gap:5px; color:var(--ink); font-size:11px; font-weight:900; white-space:nowrap; }
+.student-info-section.is-open .info-toggle-label svg { transform:rotate(180deg); }
+.student-info-body { border-top:1px solid var(--line); padding:14px; background:rgba(238,248,255,.5); }
+.student-info-search { height:48px; display:flex; align-items:center; gap:9px; padding:0 12px; background:var(--white); border:1px solid var(--line); color:var(--ink); }
+.student-info-search input { width:100%; min-width:0; border:0; outline:0; background:transparent; color:var(--ink-dark); font-size:13px; }
+.student-info-results { margin-top:10px; border:1px solid var(--line); background:var(--white); }
+.student-info-row { width:100%; min-height:64px; display:flex; align-items:center; gap:10px; padding:10px 12px; border:0; border-bottom:1px solid var(--line); background:transparent; text-align:left; color:var(--ink-dark); }
+.student-info-row:last-child { border-bottom:0; }
+.student-info-row > span { flex:1; min-width:0; }
+.student-info-row strong,.student-info-row small { display:block; }
+.student-info-row small { color:var(--muted); font:10px "IBM Plex Mono"; margin-top:3px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.student-info-row b { color:var(--ink); font:700 15px "IBM Plex Mono"; white-space:nowrap; }
+.student-info-row > svg { color:var(--muted); flex:none; }
+.student-info-empty { margin:0; padding:18px 5px 5px; color:var(--muted); font-size:12px; line-height:1.6; text-align:center; }
+.resident-management { display:flex; flex-wrap:wrap; gap:8px; margin-top:16px; }
+.management-button { min-height:40px; border-radius:11px; padding:8px 12px; border:1px solid var(--line); font-size:11px; font-weight:900; }
+.edit-management { background:var(--white); color:var(--ink); }
+.delete-management { background:#fff0ed; border-color:#f4c7c0; color:#a33d31; }
+@media (max-width:620px) {
+  .section-intro { align-items:flex-start; }
+  .search-heading-actions { flex-direction:column; align-items:flex-end; gap:10px; }
+  .page-stamp { font-size:34px; }
+  .add-student-button { padding:9px 11px; font-size:12px; }
+  .resident-header { gap:14px; }
+  .resident-header h1 { font-size:42px; }
+  .points-total strong { font-size:58px; }
+}
