@@ -19,6 +19,8 @@ describe("晨樂加油站首頁佈局", () => {
     expect(searchSection).toContain("student-list-close");
     expect(searchSection).toContain("快速搜尋姓名、QR 或 NFC Code");
     expect(searchSection).toContain("setListModalOpen(false)");
+    expect(searchSection).not.toContain("autoFocus");
+    expect(searchSection).not.toContain(".focus()");
   });
 
   it("彈窗列表只提供查看積分卡片，不放刪除入口", () => {
