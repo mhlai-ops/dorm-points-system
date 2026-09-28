@@ -4,7 +4,7 @@ import { systemRouter } from "./_core/systemRouter";
 import { publicProcedure, router } from "./_core/trpc";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-import { createSyncToken, readSnapshot, replaceSnapshot, verifySyncToken, type SyncLog, type SyncStudent } from "./supabase";
+import { createSyncToken, readSnapshot, replaceSnapshot, verifyAdminCredentials, verifySyncToken, type SyncLog, type SyncStudent } from "./supabase";
 
 const verifyRouterSyncToken = async (token: string) => {
   try {
@@ -31,14 +31,11 @@ export const appRouter = router({
     login: publicProcedure
       .input(z.object({ account: z.string(), password: z.string() }))
       .mutation(async ({ input }) => {
-        const account = process.env.DORM_SYNC_ACCOUNT;
-        const password = process.env.DORM_SYNC_PASSWORD;
         const normalizedAccount = input.account.trim().toLocaleLowerCase("en-US");
-        const normalizedConfiguredAccount = account?.trim().toLocaleLowerCase("en-US");
-        if (!normalizedConfiguredAccount || !password || normalizedAccount !== normalizedConfiguredAccount || input.password !== password) {
+        if (!(await verifyAdminCredentials(normalizedAccount, input.password))) {
           throw new Error("帳戶號碼或帳戶密碼不正確");
         }
-        return { token: await createSyncToken(normalizedConfiguredAccount) };
+        return { token: await createSyncToken(normalizedAccount) };
       }),
     snapshot: publicProcedure
       .input(z.object({ token: z.string().min(1) }))

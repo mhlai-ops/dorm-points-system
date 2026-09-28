@@ -1,3 +1,4 @@
+import { timingSafeEqual, scryptSync } from "node:crypto";
 import { jwtVerify, SignJWT } from "jose";
 
 export type SyncStudent = { id: string; qrCode: string; name: string; points: number; nfcCode?: string };
@@ -50,6 +51,27 @@ async function request(path: string, init?: RequestInit) {
   const body = await response.text();
   if (!body.trim()) return null;
   return JSON.parse(body);
+}
+
+export function verifyPasswordHash(password: string, encodedHash: string): boolean {
+  const [algorithm, nText, rText, pText, saltText, hashText] = encodedHash.split("$");
+  if (algorithm !== "scrypt" || !nText || !rText || !pText || !saltText || !hashText) return false;
+  try {
+    const salt = Buffer.from(saltText, "base64url");
+    const expected = Buffer.from(hashText, "base64url");
+    const actual = scryptSync(password, salt, expected.length, { N: Number(nText), r: Number(rText), p: Number(pText), maxmem: 32 * 1024 * 1024 });
+    return actual.length === expected.length && timingSafeEqual(actual, expected);
+  } catch {
+    return false;
+  }
+}
+
+export async function verifyAdminCredentials(username: string, password: string): Promise<boolean> {
+  const normalizedUsername = username.trim().toLocaleLowerCase("en-US");
+  if (!normalizedUsername || !password) return false;
+  const rows = await request(`admins?select=password_hash,active&username=eq.${encodeURIComponent(normalizedUsername)}&limit=1`) as Array<{ password_hash: string; active: boolean }>;
+  const record = rows[0];
+  return Boolean(record?.active && typeof record.password_hash === "string" && verifyPasswordHash(password, record.password_hash));
 }
 
 export async function readSnapshot(): Promise<{ students: SyncStudent[]; logs: SyncLog[] }> {

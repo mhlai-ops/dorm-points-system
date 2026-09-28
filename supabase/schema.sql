@@ -24,6 +24,18 @@ create table if not exists public.point_logs (
   updated_at timestamptz not null default now()
 );
 
+create table if not exists public.admins (
+  id uuid primary key default gen_random_uuid(),
+  username text not null unique,
+  password_hash text not null,
+  role text not null default 'admin' check (role in ('admin')),
+  active boolean not null default true,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+alter table public.admins enable row level security;
+
 create index if not exists point_logs_student_created_idx
   on public.point_logs (student_id, created_at desc);
 
