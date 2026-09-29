@@ -1,9 +1,9 @@
 import { timingSafeEqual, scryptSync } from "node:crypto";
 import { jwtVerify, SignJWT } from "jose";
 
-export type SyncStudent = { id: string; qrCode: string; name: string; points: number; nfcCode?: string };
+export type SyncStudent = { id: string; qrCode: string; name: string; points: number; nfcCode?: string; room?: string; className?: string; staffInCharge?: string };
 export type SyncLog = { id: string; studentId: string; at: string; item: string; delta: number; balance: number };
-export type SupabaseStudentRow = { id?: string; qr_id: string; nfc_id?: string | null; name: string; points: number };
+export type SupabaseStudentRow = { id?: string; qr_id: string; nfc_id?: string | null; name: string; points: number; room?: string | null; class_name?: string | null; staff_in_charge?: string | null };
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
@@ -11,17 +11,21 @@ export const isSyncStudentId = (value: string): boolean => UUID_PATTERN.test(val
 
 export const fromSupabaseStudentRow = (student: SupabaseStudentRow): SyncStudent => {
   const nfcCode = student.nfc_id?.trim();
-  const base = { id: student.id || student.qr_id, qrCode: student.qr_id, name: student.name, points: student.points };
-  return nfcCode ? { ...base, nfcCode } : base;
+  const base: SyncStudent = { id: student.id || student.qr_id, qrCode: student.qr_id, name: student.name, points: student.points };
+  if (nfcCode) base.nfcCode = nfcCode;
+  if (student.room) base.room = student.room;
+  if (student.class_name) base.className = student.class_name;
+  if (student.staff_in_charge) base.staffInCharge = student.staff_in_charge;
+  return base;
 };
 
-export const toSupabaseStudentRow = (student: SyncStudent) => ({
-  id: student.id,
-  qr_id: student.qrCode,
-  nfc_id: student.nfcCode?.trim() || null,
-  name: student.name,
-  points: student.points,
-});
+export const toSupabaseStudentRow = (student: SyncStudent) => {
+  const row: Record<string, string | number | null> = { id: student.id, qr_id: student.qrCode, nfc_id: student.nfcCode?.trim() || null, name: student.name, points: student.points };
+  if (student.room !== undefined) row.room = student.room.trim() || null;
+  if (student.className !== undefined) row.class_name = student.className.trim() || null;
+  if (student.staffInCharge !== undefined) row.staff_in_charge = student.staffInCharge.trim() || null;
+  return row;
+};
 
 const supabaseUrl = () => process.env.SUPABASE_URL?.replace(/\/$/, "");
 const serviceKey = () => process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -76,7 +80,7 @@ export async function verifyAdminCredentials(username: string, password: string)
 
 export async function readSnapshot(): Promise<{ students: SyncStudent[]; logs: SyncLog[] }> {
   const [students, rawLogs] = await Promise.all([
-    request("students?select=id,qr_id,nfc_id,name,points&order=created_at.asc"),
+    request("students?select=id,qr_id,nfc_id,name,points,room,class_name,staff_in_charge&order=created_at.asc"),
     request("point_logs?select=id,student_id,item,delta,balance,created_at&order=created_at.asc"),
   ]);
   const uuidByStudentId = new Map<string, string>();

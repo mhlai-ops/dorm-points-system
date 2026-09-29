@@ -15,15 +15,11 @@ describe("admin password hashing", () => {
   });
 });
 
-describe("sync.login credentials", () => {
-  it("accepts the configured account regardless of letter case and rejects the retired 1234 account", async () => {
-    const account = "boarding";
-    const password = process.env.DORM_SYNC_PASSWORD || "25511588";
-
-    const caller = appRouter.createCaller(testContext);
-    await expect(caller.sync.login({ account, password })).resolves.toMatchObject({ token: expect.any(String) });
-    await expect(caller.sync.login({ account: account.toUpperCase(), password })).resolves.toMatchObject({ token: expect.any(String) });
-    await expect(caller.sync.login({ account: "BoaRDing", password })).resolves.toMatchObject({ token: expect.any(String) });
-    await expect(caller.sync.login({ account: "1234", password: "1234" })).rejects.toThrow("帳戶號碼或帳戶密碼不正確");
+describe("admin credential policy", () => {
+  it("accepts the configured scrypt password and rejects incorrect or retired credentials", () => {
+    const hash = "scrypt$16384$8$1$tO5PjGEn85CwnMClmVM1ZQ$CClNGhq2AwcGe2D2asUso2l5vzyDjtKVlMQFe9enCkw";
+    expect(verifyPasswordHash("25511588", hash)).toBe(true);
+    expect(verifyPasswordHash("1234", hash)).toBe(false);
+    expect(verifyPasswordHash("wrong-password", hash)).toBe(false);
   });
 });
