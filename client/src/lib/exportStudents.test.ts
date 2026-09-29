@@ -18,9 +18,13 @@ describe("宿生 Excel 匯出", () => {
       points: 15, qrCode: "20418", nfcCode: "04A1",
     }], new Date(2026, 8, 29));
     expect(filename).toBe("宿生分數紀錄_20260929.xlsx");
-    expect(XLSX.utils.json_to_sheet).toHaveBeenCalledWith([expect.objectContaining({
-      "姓名": "思𤦭", "房號": "A-101", "班別": "小六甲", "個案職員": "陳老師", "最新分數": 15,
-    })]);
+    expect(XLSX.utils.json_to_sheet).toHaveBeenCalledWith([{
+      "姓名": "思𤦭", "最新分數": 15, "QR Code": "20418", "NFC Code": "04A1",
+    }]);
+    const exportedRow = vi.mocked(XLSX.utils.json_to_sheet).mock.calls[0][0]![0] as Record<string, unknown>;
+    expect(exportedRow).not.toHaveProperty("房號");
+    expect(exportedRow).not.toHaveProperty("班別");
+    expect(exportedRow).not.toHaveProperty("個案職員");
     expect(XLSX.writeFile).toHaveBeenCalledWith(expect.anything(), filename);
   });
 });

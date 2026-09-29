@@ -13,9 +13,6 @@ export type ExportStudent = {
 export const exportStudentsToExcel = (students: ExportStudent[], date = new Date()) => {
   const rows = students.map(student => ({
     "姓名": student.name,
-    "房號": student.room || "",
-    "班別": student.className || "",
-    "個案職員": student.staffInCharge || "",
     "最新分數": student.points,
     "QR Code": student.qrCode || "",
     "NFC Code": student.nfcCode || "",
@@ -23,8 +20,7 @@ export const exportStudentsToExcel = (students: ExportStudent[], date = new Date
   const workbook = XLSX.utils.book_new();
   const sheet = XLSX.utils.json_to_sheet(rows);
   sheet["!cols"] = [
-    { wch: 16 }, { wch: 12 }, { wch: 12 }, { wch: 18 },
-    { wch: 12 }, { wch: 14 }, { wch: 16 },
+    { wch: 16 }, { wch: 12 }, { wch: 14 }, { wch: 16 },
   ];
   XLSX.utils.book_append_sheet(workbook, sheet, "宿生分數");
   const yyyy = date.getFullYear();
