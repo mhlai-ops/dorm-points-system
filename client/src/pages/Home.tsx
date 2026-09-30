@@ -50,6 +50,12 @@ const saveAuth = (remember: boolean, token?: string) => {
     return true;
   } catch { return false; }
 };
+const refreshStoredAuth = (token: string) => {
+  try {
+    const remember = Boolean(window.localStorage.getItem(AUTH_KEY));
+    return saveAuth(remember, token);
+  } catch { return false; }
+};
 const clearAuth = () => {
   try { window.localStorage.removeItem(AUTH_KEY); } catch { /* 儲存空間不可用時繼續清理 sessionStorage。 */ }
   try { window.sessionStorage.removeItem(AUTH_KEY); } catch { /* 儲存空間不可用時仍由記憶體狀態登出。 */ }
@@ -275,6 +281,7 @@ function EditLog({ log, onClose, onSave }: { log: Log; onClose: () => void; onSa
 function HistoryPage({ student, logs, undo, edit, back, onLogout, onRefresh, refreshing }: { student: Student; logs: Log[]; undo: (id: string) => void; edit: (log: Log) => void; back: () => void; onLogout: () => void; onRefresh: () => void; refreshing: boolean }) { const own = logs.filter(l => l.studentId === student.id).sort((a,b) => +new Date(b.at) - +new Date(a.at)); return <PageShell eyebrow="04 / HISTORY" onHome={back} onLogout={onLogout} onRefresh={onRefresh} refreshing={refreshing}><section className="content history-content"><button className="back-link" onClick={back}><ArrowLeft size={16}/> 返回積分管理</button><div className="history-header"><div><p className="kicker">POINTS HISTORY / QR {student.qrCode}</p><h1>{student.name} 的明細</h1></div><div className="history-total"><span>目前總積分</span><strong>{student.points}</strong></div></div><div className="section-heading"><span>異動紀錄</span><span className="line"/><small>最新在上</small></div>{own.length === 0 ? <div className="empty"><History size={32}/><h3>還沒有紀錄</h3><p>完成一次好表現，就會在這裡留下足跡。</p></div> : <div className="log-list">{own.map(log => <div className="log-row" key={log.id}><div className={`delta-mark ${log.delta > 0 ? "up" : "down"}`}>{log.delta > 0 ? "+" : "−"}</div><div className="log-info"><strong>{log.item}</strong><small>{new Date(log.at).toLocaleString("zh-HK", { dateStyle: "medium", timeStyle: "short" })}</small></div><div className={`log-delta ${log.delta > 0 ? "green" : "red"}`}>{log.delta > 0 ? "+" : ""}{log.delta}</div><div className="balance"><small>餘額</small><strong>{log.balance}</strong></div><div className="log-actions"><button className="edit-log" onClick={() => edit(log)}>修改</button><button className="undo" onClick={() => undo(log.id)}>撤銷</button></div></div>)}</div>}<div className="history-foot"><ShieldCheck size={16}/> 撤銷後會恢復當時的積分變動，並從紀錄中移除。</div></section></PageShell>; }
 export default function Home() {
   const syncLogin = trpc.sync.login.useMutation();
+  const syncRefresh = trpc.sync.refresh.useMutation();
   const syncSave = trpc.sync.save.useMutation();
   const authForSync = readAuth();
   const [authenticated, setAuthenticated] = useState(() => Boolean(readAuth()));
@@ -338,7 +345,16 @@ export default function Home() {
 
   useEffect(() => {
     const onVisible = () => {
-      if (document.visibilityState === "visible" && authenticated && Boolean(syncToken)) snapshotQuery.refetch();
+      const token = syncToken;
+      if (document.visibilityState === "visible" && authenticated && token) {
+        void syncRefresh.mutateAsync({ token }).then(result => {
+          if (!refreshStoredAuth(result.token)) expireSyncSession();
+          else void snapshotQuery.refetch();
+        }).catch(error => {
+          if (isSyncAuthError(error)) expireSyncSession();
+          else void snapshotQuery.refetch();
+        });
+      }
     };
     window.addEventListener("visibilitychange", onVisible);
     window.addEventListener("focus", onVisible);
@@ -346,7 +362,20 @@ export default function Home() {
       window.removeEventListener("visibilitychange", onVisible);
       window.removeEventListener("focus", onVisible);
     };
-  }, [authenticated, syncToken, snapshotQuery.refetch]);
+  }, [authenticated, syncToken, snapshotQuery.refetch, syncRefresh.mutateAsync]);
+
+  useEffect(() => {
+    const token = syncToken;
+    if (!authenticated || !token) return;
+    const timer = window.setInterval(() => {
+      void syncRefresh.mutateAsync({ token }).then(result => {
+        if (!refreshStoredAuth(result.token)) expireSyncSession();
+      }).catch(error => {
+        if (isSyncAuthError(error)) expireSyncSession();
+      });
+    }, 6 * 60 * 60 * 1000);
+    return () => window.clearInterval(timer);
+  }, [authenticated, syncToken, syncRefresh.mutateAsync]);
 
   const refresh = async () => {
     if (!authenticated || !syncToken) {

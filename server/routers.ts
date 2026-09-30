@@ -37,6 +37,14 @@ export const appRouter = router({
         }
         return { token: await createSyncToken(normalizedAccount) };
       }),
+    refresh: publicProcedure
+      .input(z.object({ token: z.string().min(1) }))
+      .mutation(async ({ input }) => {
+        const payload = await verifyRouterSyncToken(input.token);
+        const account = typeof payload.account === "string" ? payload.account : "";
+        if (!account) throw new TRPCError({ code: "UNAUTHORIZED", message: "Sync session expired" });
+        return { token: await createSyncToken(account) };
+      }),
     snapshot: publicProcedure
       .input(z.object({ token: z.string().min(1) }))
       .query(async ({ input }) => {

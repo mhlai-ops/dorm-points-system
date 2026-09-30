@@ -80,7 +80,7 @@ export async function verifyAdminCredentials(username: string, password: string)
 
 export async function readSnapshot(): Promise<{ students: SyncStudent[]; logs: SyncLog[] }> {
   const [students, rawLogs] = await Promise.all([
-    request("students?select=id,qr_id,nfc_id,name,points,room,class_name,staff_in_charge&order=created_at.asc"),
+    request("students?select=id,qr_id,nfc_id,name,points,room,class_name,staff_in_charge&order=created_at.asc,qr_id.asc"),
     request("point_logs?select=id,student_id,item,delta,balance,created_at&order=created_at.asc"),
   ]);
   const uuidByStudentId = new Map<string, string>();
@@ -156,7 +156,10 @@ export async function createSyncToken(account: string) {
   return new SignJWT({ scope: "points:sync", account })
     .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()
-    .setExpirationTime("12h")
+    // Rolling session: the browser refreshes this token while the user is active.
+    // This is intentionally long-lived, but not literally permanent, so a stolen
+    // token eventually expires without requiring a password to be stored client-side.
+    .setExpirationTime("30d")
     .sign(authSecret());
 }
 
